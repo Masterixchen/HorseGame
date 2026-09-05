@@ -1,0 +1,67 @@
+[
+  {
+    "Id": "vollblut",
+    "Name": "Vollblut",
+    "Beschreibung": "Schnell und nervös, für die Rennbahn gezüchtet.",
+    "TempoPotenzial": { "Min": 60, "Max": 85 },
+    "AusdauerPotenzial": { "Min": 40, "Max": 60 },
+    "SprungkraftPotenzial": { "Min": 35, "Max": 55 },
+    "RittigkeitPotenzial": { "Min": 30, "Max": 55 },
+    "ImplizitesMerkmal": "impl_vollblut",
+    "MoeglichePraefixe": ["windlaeufer", "hochsprung", "wendig", "frohwuechsig"],
+    "MoeglicheSuffixe": ["schnelllerner", "hitzkopf", "kampfgeist", "zart"],
+    "Farben": ["Fuchs", "Braun", "Rappe", "Schimmel"]
+  },
+  {
+    "Id": "kaltblut",
+    "Name": "Kaltblut",
+    "Beschreibung": "Kräftig und ruhig, unermüdlich im Einsatz.",
+    "TempoPotenzial": { "Min": 25, "Max": 45 },
+    "AusdauerPotenzial": { "Min": 65, "Max": 90 },
+    "SprungkraftPotenzial": { "Min": 20, "Max": 40 },
+    "RittigkeitPotenzial": { "Min": 45, "Max": 70 },
+    "ImplizitesMerkmal": "impl_kaltblut",
+    "MoeglichePraefixe": ["stahlsehnen", "wendig", "frohwuechsig"],
+    "MoeglicheSuffixe": ["eisenfresser", "gutmuetig", "zaeh", "sonnenschein"],
+    "Farben": ["Braun", "Rappe", "Fuchs"]
+  },
+  {
+    "Id": "warmblut",
+    "Name": "Warmblut",
+    "Beschreibung": "Ausgeglichen, das Arbeitspferd für fast jede Disziplin.",
+    "TempoPotenzial": { "Min": 45, "Max": 65 },
+    "AusdauerPotenzial": { "Min": 45, "Max": 65 },
+    "SprungkraftPotenzial": { "Min": 45, "Max": 70 },
+    "RittigkeitPotenzial": { "Min": 55, "Max": 80 },
+    "ImplizitesMerkmal": "impl_warmblut",
+    "MoeglichePraefixe": ["windlaeufer", "stahlsehnen", "hochsprung", "wendig", "frohwuechsig"],
+    "MoeglicheSuffixe": ["schnelllerner", "sonnenschein", "gutmuetig", "kampfgeist", "zaeh"],
+    "Farben": ["Braun", "Fuchs", "Rappe", "Schimmel", "Falbe"]
+  },
+  {
+    "Id": "pony",
+    "Name": "Pony",
+    "Beschreibung": "Klein, wendig und zäher als sein Ruf.",
+    "TempoPotenzial": { "Min": 35, "Max": 55 },
+    "AusdauerPotenzial": { "Min": 50, "Max": 75 },
+    "SprungkraftPotenzial": { "Min": 55, "Max": 80 },
+    "RittigkeitPotenzial": { "Min": 50, "Max": 75 },
+    "ImplizitesMerkmal": "impl_pony",
+    "MoeglichePraefixe": ["hochsprung", "wendig", "stahlsehnen", "frohwuechsig"],
+    "MoeglicheSuffixe": ["sonnenschein", "gutmuetig", "zaeh", "kampfgeist"],
+    "Farben": ["Braun", "Falbe", "Schecke", "Rappe"]
+  },
+  {
+    "Id": "araber",
+    "Name": "Araber",
+    "Beschreibung": "Trittsicher und ausdauernd, mit Feuer im Blick.",
+    "TempoPotenzial": { "Min": 50, "Max": 70 },
+    "AusdauerPotenzial": { "Min": 60, "Max": 85 },
+    "SprungkraftPotenzial": { "Min": 35, "Max": 55 },
+    "RittigkeitPotenzial": { "Min": 40, "Max": 65 },
+    "ImplizitesMerkmal": "impl_araber",
+    "MoeglichePraefixe": ["windlaeufer", "stahlsehnen", "wendig", "frohwuechsig"],
+    "MoeglicheSuffixe": ["schnelllerner", "hitzkopf", "kampfgeist", "zart"],
+    "Farben": ["Fuchs", "Schimmel", "Rappe"]
+  }
+]

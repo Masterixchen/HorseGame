@@ -1,0 +1,264 @@
+[
+  {
+    "Id": "impl_vollblut",
+    "Name": "Rennblut",
+    "Art": "Implizit",
+    "Familie": "rasse",
+    "Beschreibung": "Für die Bahn gezüchtet - immer ein wenig schneller als der Durchschnitt.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Tempo", "Min": 3, "Max": 6 }] }
+    ]
+  },
+  {
+    "Id": "impl_kaltblut",
+    "Name": "Zugkraft",
+    "Art": "Implizit",
+    "Familie": "rasse",
+    "Beschreibung": "Kräftiger Körperbau, macht müde Beine seltener.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Ausdauer", "Min": 3, "Max": 6 }] }
+    ]
+  },
+  {
+    "Id": "impl_warmblut",
+    "Name": "Ausgeglichenes Wesen",
+    "Art": "Implizit",
+    "Familie": "rasse",
+    "Beschreibung": "Der geborene Allrounder - lässt sich leicht führen.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Rittigkeit", "Min": 3, "Max": 6 }] }
+    ]
+  },
+  {
+    "Id": "impl_pony",
+    "Name": "Kurze Beine, große Sprünge",
+    "Art": "Implizit",
+    "Familie": "rasse",
+    "Beschreibung": "Was an Größe fehlt, macht die Sprungtechnik wett.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Sprungkraft", "Min": 3, "Max": 6 }] }
+    ]
+  },
+  {
+    "Id": "impl_araber",
+    "Name": "Wüstenerbe",
+    "Art": "Implizit",
+    "Familie": "rasse",
+    "Beschreibung": "Über Generationen auf lange Ritte gezüchtet - erholt sich zügig.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Erholung", "Min": 5, "Max": 10 }] }
+    ]
+  },
+
+  {
+    "Id": "windlaeufer",
+    "Name": "Windläufer",
+    "Art": "Praefix",
+    "Familie": "tempo",
+    "Beschreibung": "Körperbau, der auf reine Geschwindigkeit ausgelegt ist.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Tempo", "Min": 3, "Max": 6 }] },
+      { "Stufe": 2, "Effekte": [{ "Attribut": "Tempo", "Min": 7, "Max": 11 }] },
+      { "Stufe": 3, "Effekte": [{ "Attribut": "Tempo", "Min": 12, "Max": 18 }] }
+    ]
+  },
+  {
+    "Id": "stahlsehnen",
+    "Name": "Stahlsehnen",
+    "Art": "Praefix",
+    "Familie": "ausdauer",
+    "Beschreibung": "Sehnen und Lunge, die auch lange Strecken durchhalten.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Ausdauer", "Min": 3, "Max": 6 }] },
+      { "Stufe": 2, "Effekte": [{ "Attribut": "Ausdauer", "Min": 7, "Max": 11 }] },
+      { "Stufe": 3, "Effekte": [{ "Attribut": "Ausdauer", "Min": 12, "Max": 18 }] }
+    ]
+  },
+  {
+    "Id": "hochsprung",
+    "Name": "Hochsprung",
+    "Art": "Praefix",
+    "Familie": "sprungkraft",
+    "Beschreibung": "Kraftvolle Hinterhand, wie gemacht für hohe Hindernisse.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Sprungkraft", "Min": 3, "Max": 6 }] },
+      { "Stufe": 2, "Effekte": [{ "Attribut": "Sprungkraft", "Min": 7, "Max": 11 }] },
+      { "Stufe": 3, "Effekte": [{ "Attribut": "Sprungkraft", "Min": 12, "Max": 18 }] }
+    ]
+  },
+  {
+    "Id": "wendig",
+    "Name": "Wendig",
+    "Art": "Praefix",
+    "Familie": "rittigkeit",
+    "Beschreibung": "Reagiert auf die feinste Hilfe, fast von selbst.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Rittigkeit", "Min": 3, "Max": 6 }] },
+      { "Stufe": 2, "Effekte": [{ "Attribut": "Rittigkeit", "Min": 7, "Max": 11 }] },
+      { "Stufe": 3, "Effekte": [{ "Attribut": "Rittigkeit", "Min": 12, "Max": 18 }] }
+    ]
+  },
+  {
+    "Id": "frohwuechsig",
+    "Name": "Frohwüchsig",
+    "Art": "Praefix",
+    "Familie": "wachstum",
+    "Beschreibung": "Entwickelt sich schneller als andere Fohlen seiner Rasse.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Wachstumsgeschwindigkeit", "Min": 5, "Max": 10 }] },
+      { "Stufe": 2, "Effekte": [{ "Attribut": "Wachstumsgeschwindigkeit", "Min": 11, "Max": 18 }] },
+      { "Stufe": 3, "Effekte": [{ "Attribut": "Wachstumsgeschwindigkeit", "Min": 19, "Max": 28 }] }
+    ]
+  },
+
+  {
+    "Id": "schnelllerner",
+    "Name": "Schnelllerner",
+    "Art": "Suffix",
+    "Familie": "training",
+    "Beschreibung": "Begreift neue Lektionen ungewöhnlich schnell.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Trainingsgeschwindigkeit", "Min": 8, "Max": 15 }] },
+      { "Stufe": 2, "Effekte": [{ "Attribut": "Trainingsgeschwindigkeit", "Min": 16, "Max": 25 }] },
+      { "Stufe": 3, "Effekte": [{ "Attribut": "Trainingsgeschwindigkeit", "Min": 26, "Max": 38 }] }
+    ]
+  },
+  {
+    "Id": "hitzkopf",
+    "Name": "Hitzkopf",
+    "Art": "Suffix",
+    "Familie": "gemuet",
+    "Beschreibung": "Zweischneidig: brennt im Wettkampf, überlastet sich dabei aber leichter.",
+    "Stufen": [
+      {
+        "Stufe": 1,
+        "Effekte": [
+          { "Attribut": "Wettkampfverhalten", "Min": 10, "Max": 20 },
+          { "Attribut": "Verletzungsanfaelligkeit", "Min": 8, "Max": 15 }
+        ]
+      },
+      {
+        "Stufe": 2,
+        "Effekte": [
+          { "Attribut": "Wettkampfverhalten", "Min": 21, "Max": 32 },
+          { "Attribut": "Verletzungsanfaelligkeit", "Min": 16, "Max": 24 }
+        ]
+      },
+      {
+        "Stufe": 3,
+        "Effekte": [
+          { "Attribut": "Wettkampfverhalten", "Min": 33, "Max": 46 },
+          { "Attribut": "Verletzungsanfaelligkeit", "Min": 25, "Max": 35 }
+        ]
+      }
+    ]
+  },
+  {
+    "Id": "eisenfresser",
+    "Name": "Eisenfresser",
+    "Art": "Suffix",
+    "Familie": "stoffwechsel",
+    "Beschreibung": "Zweischneidig: erholt sich bemerkenswert schnell, braucht dafür aber deutlich mehr Futter.",
+    "Stufen": [
+      {
+        "Stufe": 1,
+        "Effekte": [
+          { "Attribut": "Erholung", "Min": 10, "Max": 18 },
+          { "Attribut": "Futterbedarf", "Min": 10, "Max": 20 }
+        ]
+      },
+      {
+        "Stufe": 2,
+        "Effekte": [
+          { "Attribut": "Erholung", "Min": 19, "Max": 28 },
+          { "Attribut": "Futterbedarf", "Min": 21, "Max": 32 }
+        ]
+      },
+      {
+        "Stufe": 3,
+        "Effekte": [
+          { "Attribut": "Erholung", "Min": 29, "Max": 40 },
+          { "Attribut": "Futterbedarf", "Min": 33, "Max": 46 }
+        ]
+      }
+    ]
+  },
+  {
+    "Id": "sonnenschein",
+    "Name": "Sonnenschein",
+    "Art": "Suffix",
+    "Familie": "gemuet",
+    "Beschreibung": "Ausgesprochen gute Laune, fast egal was passiert.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Stimmung", "Min": 5, "Max": 10 }] },
+      { "Stufe": 2, "Effekte": [{ "Attribut": "Stimmung", "Min": 11, "Max": 18 }] },
+      { "Stufe": 3, "Effekte": [{ "Attribut": "Stimmung", "Min": 19, "Max": 28 }] }
+    ]
+  },
+  {
+    "Id": "kampfgeist",
+    "Name": "Kampfgeist",
+    "Art": "Suffix",
+    "Familie": "wettkampf",
+    "Beschreibung": "Zeigt im entscheidenden Moment eine Schippe mehr.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Wettkampfverhalten", "Min": 8, "Max": 14 }] },
+      { "Stufe": 2, "Effekte": [{ "Attribut": "Wettkampfverhalten", "Min": 15, "Max": 24 }] },
+      { "Stufe": 3, "Effekte": [{ "Attribut": "Wettkampfverhalten", "Min": 25, "Max": 35 }] }
+    ]
+  },
+  {
+    "Id": "zaeh",
+    "Name": "Zäh",
+    "Art": "Suffix",
+    "Familie": "gesundheit",
+    "Beschreibung": "Steckt Belastung ungewöhnlich gut weg.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Verletzungsanfaelligkeit", "Min": -15, "Max": -8 }] },
+      { "Stufe": 2, "Effekte": [{ "Attribut": "Verletzungsanfaelligkeit", "Min": -25, "Max": -16 }] },
+      { "Stufe": 3, "Effekte": [{ "Attribut": "Verletzungsanfaelligkeit", "Min": -35, "Max": -26 }] }
+    ]
+  },
+  {
+    "Id": "gutmuetig",
+    "Name": "Gutmütig",
+    "Art": "Suffix",
+    "Familie": "vererbung",
+    "Beschreibung": "Gibt seine Anlagen zuverlässig an den Nachwuchs weiter.",
+    "Stufen": [
+      { "Stufe": 1, "Effekte": [{ "Attribut": "Vererbungsstaerke", "Min": 8, "Max": 15 }] },
+      { "Stufe": 2, "Effekte": [{ "Attribut": "Vererbungsstaerke", "Min": 16, "Max": 24 }] },
+      { "Stufe": 3, "Effekte": [{ "Attribut": "Vererbungsstaerke", "Min": 25, "Max": 35 }] }
+    ]
+  },
+  {
+    "Id": "zart",
+    "Name": "Zart",
+    "Art": "Suffix",
+    "Familie": "gesundheit",
+    "Beschreibung": "Zweischneidig: sehr feinfühlig und ausgeglichen, dafür anfälliger für Verletzungen.",
+    "Stufen": [
+      {
+        "Stufe": 1,
+        "Effekte": [
+          { "Attribut": "Stimmung", "Min": 10, "Max": 18 },
+          { "Attribut": "Verletzungsanfaelligkeit", "Min": 12, "Max": 20 }
+        ]
+      },
+      {
+        "Stufe": 2,
+        "Effekte": [
+          { "Attribut": "Stimmung", "Min": 19, "Max": 27 },
+          { "Attribut": "Verletzungsanfaelligkeit", "Min": 21, "Max": 30 }
+        ]
+      },
+      {
+        "Stufe": 3,
+        "Effekte": [
+          { "Attribut": "Stimmung", "Min": 28, "Max": 38 },
+          { "Attribut": "Verletzungsanfaelligkeit", "Min": 31, "Max": 42 }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Thematische Inhalte werden eingebettet statt als lose Datei ausgeliefert, damit dieselbe
+         Bibliothek unverändert im Browser (Blazor WebAssembly) läuft - dort gibt es kein Dateisystem. -->
+    <EmbeddedResource Include="Data\*.json" />
+  </ItemGroup>
+
+</Project>

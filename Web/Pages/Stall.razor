@@ -1,0 +1,83 @@
+@page "/"
+@using Core
+@using Web.Speicher
+@inject SpielSitzung Sitzung
+@inject Inhaltsdatenbank Inhalte
+@inject NavigationManager Navigation
+
+<PageTitle>Stall</PageTitle>
+
+<div class="stall-kopf">
+    <h1>Stall</h1>
+    <button class="knopf-sekundaer" @onclick="Aktualisieren">Aktualisieren</button>
+</div>
+
+@if (!Sitzung.Geladen)
+{
+    <p>Lädt...</p>
+}
+else if (Sitzung.Zustand.Pferde.Count == 0)
+{
+    <p>Noch keine Pferde im Stall.</p>
+}
+else
+{
+    <div class="pferde-raster">
+        @foreach (var pferd in Sitzung.Zustand.Pferde)
+        {
+            var rasse = Inhalte.HoleRasse(pferd.RasseId);
+            <div class="pferde-karte seltenheit-@pferd.Seltenheit.ToString().ToLowerInvariant()" @onclick="() => OeffnePferd(pferd.Id)">
+                <div class="karte-kopf">
+                    <span class="pferde-name">@pferd.Name</span>
+                    <span class="seltenheit-abzeichen">@pferd.Seltenheit</span>
+                </div>
+                <div class="karte-unterzeile">@rasse.Name · @pferd.Geschlecht · @pferd.Farbe</div>
+
+                <div class="werte-liste">
+                    @foreach (var (typ, stat) in pferd.Werte.Alle())
+                    {
+                        <div class="wert-zeile">
+                            <span class="wert-name">@typ</span>
+                            <div class="balken-hintergrund">
+                                <div class="balken-potenzial" style="width:@(Prozent(stat.Potenzial, 100))%"></div>
+                                <div class="balken-aktuell" style="width:@(Prozent(stat.Aktuell, 100))%"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="karte-fuss">
+                    @if (pferd.AktivesTraining != null)
+                    {
+                        <span class="training-status">🏋 Training bis @pferd.AktivesTraining.Ende.ToLocalTime().ToString("dd.MM. HH:mm")</span>
+                    }
+                    else
+                    {
+                        <span class="training-status training-frei">bereit für Training</span>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await Sitzung.LadenOderErzeugenAsync();
+    }
+
+    private async Task Aktualisieren()
+    {
+        Sitzung.Zustand.Advance(DateTime.UtcNow);
+        await Sitzung.SpeichernAsync();
+        StateHasChanged();
+    }
+
+    private void OeffnePferd(Guid id) => Navigation.NavigateTo($"/pferd/{id}");
+
+    // Invariant formatieren: CSS versteht kein Komma als Dezimaltrennzeichen, die deutsche
+    // Kultur würde hier sonst "62,6%" statt "62.6%" erzeugen und der Browser ignoriert den Wert.
+    private static string Prozent(float wert, float bezug) =>
+        Math.Clamp(wert / bezug * 100.0, 0, 100).ToString(System.Globalization.CultureInfo.InvariantCulture);
+}
