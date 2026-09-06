@@ -10,3 +10,10 @@ chmod +x dotnet-install.sh
 # Unterordner - also die Ausgabe flach ziehen statt den Zwischenordner zu behalten.
 rm -rf output
 mv publish/wwwroot output
+
+# Cloudflares _redirects-Validator meldet bei "/* /index.html 200" eine Endlosschleife
+# (bekannter Fehlalarm: cloudflare/workers-sdk#11824) - er nimmt an, seine automatische
+# URL-Normalisierung würde "/index.html" sofort wieder auf "/" zurückführen. Deshalb wird
+# nur die ausgelieferte Kopie umbenannt (lokales `dotnet run` bleibt unberührt);
+# _redirects zeigt entsprechend auf den neuen Namen.
+mv output/index.html output/_index.html
