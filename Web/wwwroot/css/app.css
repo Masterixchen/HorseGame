@@ -164,6 +164,13 @@ html, body {
     border-bottom-color: var(--farbe-akzent);
 }
 
+.kopf-kennzahlen {
+    display: flex;
+    gap: 1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
 .stall-kopf {
     display: flex;
     align-items: center;
@@ -515,4 +522,17 @@ select {
 .vorschau-prozent {
     text-align: right;
     color: var(--farbe-text-schwach);
+}
+
+/* ----- Markt ----- */
+
+.ausruestungs-karte {
+    background: var(--farbe-flaeche);
+    border: 1px solid var(--farbe-rand);
+    border-radius: 0.5rem;
+    padding: 0.7rem 0.9rem;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
 }

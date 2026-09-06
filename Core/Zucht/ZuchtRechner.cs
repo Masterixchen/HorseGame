@@ -35,7 +35,9 @@ public static class ZuchtRechner
             Geschlecht = zufall.NaechsterBool() ? Geschlecht.Stute : Geschlecht.Hengst,
             Farbe = zufall.NaechsterBool() ? mutter.Farbe : vater.Farbe,
             Geburtsdatum = geburtsdatum,
-            Blutlinienstufe = WuerfleBlutlinienstufe(zufall, mutter, vater, einsatz)
+            Blutlinienstufe = WuerfleBlutlinienstufe(zufall, mutter, vater, einsatz),
+            MutterId = mutter.Id,
+            VaterId = vater.Id
         };
         if (!rasse.Farben.Contains(fohlen.Farbe)) fohlen.Farbe = zufall.Waehle(rasse.Farben);
         fohlen.Name = zufall.Waehle(inhalte.NamenFuer(fohlen.Geschlecht));

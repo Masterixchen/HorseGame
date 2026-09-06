@@ -106,11 +106,57 @@ else
         }
     </section>
 
+    <section class="detail-abschnitt">
+        <h2>Ausrüstung</h2>
+        @foreach (var slot in Enum.GetValues<AusruestungsSlot>())
+        {
+            var ausgeruestetId = _pferd.Ausgeruestet.GetValueOrDefault(slot);
+            var ausgeruestet = ausgeruestetId != Guid.Empty ? Sitzung.Zustand.Ausruestungen.FirstOrDefault(a => a.Id == ausgeruestetId) : null;
+            <div class="merkmal-zeile">
+                <div class="merkmal-kopf">
+                    <span class="merkmal-art">@slot</span>
+                    <span class="merkmal-name">@(ausgeruestet != null ? Inhalte.HoleAusruestung(ausgeruestet.DefinitionId).Name : "leer")</span>
+                </div>
+                @if (ausgeruestet != null)
+                {
+                    <button class="knopf-sekundaer" @onclick="() => Ablegen(slot)">Ablegen</button>
+                }
+                else
+                {
+                    var verfuegbar = VerfuegbareAusruestung(slot);
+                    @if (verfuegbar.Count == 0)
+                    {
+                        <p class="fohlen-hinweis">nichts im Lager für diesen Slot - siehe Markt</p>
+                    }
+                    else
+                    {
+                        <div class="training-formular">
+                            <select @bind="_ausgewaehlteAusruestung[slot]">
+                                @foreach (var a in verfuegbar)
+                                {
+                                    <option value="@a.Id">@Inhalte.HoleAusruestung(a.DefinitionId).Name</option>
+                                }
+                            </select>
+                            <button class="knopf-primaer" @onclick="() => Anlegen(slot)">Anlegen</button>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </section>
+
     @if (_pferd.Traechtigkeit != null)
     {
         <section class="detail-abschnitt">
             <h2>Trächtigkeit</h2>
             <p>Geburt am <strong>@_pferd.Traechtigkeit.Geburtstermin.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</strong>.</p>
+        </section>
+    }
+    else if (_pferd.Anmeldung != null)
+    {
+        <section class="detail-abschnitt">
+            <h2>Wettkampf-Anmeldung</h2>
+            <p>Angemeldet für <strong>@_pferd.Anmeldung.Klasse.Name</strong>, Termin @_pferd.Anmeldung.Zeitpunkt.ToLocalTime().ToString("dd.MM.yyyy HH:mm").</p>
         </section>
     }
     else if (!_pferd.AlleMerkmaleBekannt)
@@ -149,6 +195,8 @@ else
 
     private Pferd? _pferd;
     private StatTyp _trainingsZiel = StatTyp.Tempo;
+    private readonly Dictionary<AusruestungsSlot, string> _ausgewaehlteAusruestung =
+        Enum.GetValues<AusruestungsSlot>().ToDictionary(s => s, _ => "");
 
     protected override async Task OnInitializedAsync()
     {
@@ -162,6 +210,32 @@ else
     {
         if (_pferd == null) return;
         _pferd.StarteTraining(_trainingsZiel, DateTime.UtcNow, Sitzung.Zustand.Zufall);
+        await Sitzung.SpeichernAsync();
+    }
+
+    private List<Ausruestung> VerfuegbareAusruestung(AusruestungsSlot slot) => Sitzung.Zustand.Ausruestungen
+        .Where(a => a.AngelegtBeiPferdId == null && Inhalte.HoleAusruestung(a.DefinitionId).Slot == slot).ToList();
+
+    private async Task Anlegen(AusruestungsSlot slot)
+    {
+        if (_pferd == null) return;
+
+        // Ohne "- wählen -"-Platzhalter zeigt der Browser von sich aus schon das erste Element an,
+        // bevor @bind das C#-Feld nachzieht - ohne expliziten Wechsel bliebe es sonst leer.
+        var idText = _ausgewaehlteAusruestung.GetValueOrDefault(slot);
+        var ausruestung = string.IsNullOrEmpty(idText)
+            ? VerfuegbareAusruestung(slot).FirstOrDefault()
+            : Sitzung.Zustand.Ausruestungen.FirstOrDefault(a => a.Id.ToString() == idText);
+        if (ausruestung == null) return;
+
+        Sitzung.Zustand.RuesteAus(_pferd, ausruestung, slot);
+        await Sitzung.SpeichernAsync();
+    }
+
+    private async Task Ablegen(AusruestungsSlot slot)
+    {
+        if (_pferd == null) return;
+        Sitzung.Zustand.RuesteAb(_pferd, slot);
         await Sitzung.SpeichernAsync();
     }
 

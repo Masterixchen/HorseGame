@@ -29,11 +29,26 @@ public class Pferd
     // Instanz nicht selbst auslösen.
     public Traechtigkeit? Traechtigkeit { get; set; }
 
+    // Nur bei Marktpferden/Startpferden leer. Für Eigenzucht-Beschränkungen bei Wettkämpfen
+    // und spätere Abstammungsanzeigen.
+    public Guid? MutterId { get; set; }
+    public Guid? VaterId { get; set; }
+
+    public WettkampfAnmeldung? Anmeldung { get; set; }
+
+    // Nur die Slots mit belegtem Eintrag sind vorhanden. Wert ist die Id der Ausruestung-Instanz,
+    // nicht der Definition - dieselbe Definition kann mehrfach besessen werden.
+    public Dictionary<AusruestungsSlot, Guid> Ausgeruestet { get; set; } = new();
+
     public int AlterInJahren(DateTime bezugsdatum) => (int)((bezugsdatum - Geburtsdatum).TotalDays / 365.25);
 
     /// <summary>Solange noch nicht alle Merkmale aufgedeckt sind, eignet sich das Pferd nicht als
     /// Zuchtpartner - eine ehrliche Vorschau braucht bekannte Ausgangswerte.</summary>
     public bool AlleMerkmaleBekannt => AlleMerkmale().All(m => m.Bekannt);
+
+    /// <summary>Training, Trächtigkeit und Wettkampf-Anmeldung schließen sich gegenseitig aus -
+    /// ein Pferd kann immer nur eine dieser Sachen gleichzeitig tun.</summary>
+    public bool IstBeschaeftigt => AktivesTraining != null || Traechtigkeit != null || Anmeldung != null;
 
     /// <summary>Alle Merkmale zusammen - praktisch für Anzeige und für die Modifikator-Summe.</summary>
     public IEnumerable<MerkmalsInstanz> AlleMerkmale()
@@ -71,8 +86,10 @@ public class Pferd
 
     /// <summary>Rechnet den Zeitraum [von, bis) für dieses Pferd durch: fälliges Training
     /// abschließen, sonst Kondition und Stimmung fortschreiben. Wird von Spielstand.Advance in
-    /// Schritten von höchstens einer Stunde aufgerufen, damit sich nichts überholt.</summary>
-    public void Advance(DateTime von, DateTime bis)
+    /// Schritten von höchstens einer Stunde aufgerufen, damit sich nichts überholt.
+    /// zusatzErholungProzent bündelt externe Boni (Hofstufe/Unterbringung, Decken-Ausrüstung), die
+    /// dieses Pferd selbst nicht kennt - Spielstand.Advance rechnet sie vorher zusammen.</summary>
+    public void Advance(DateTime von, DateTime bis, float zusatzErholungProzent = 0f)
     {
         foreach (var merkmal in AlleMerkmale())
             merkmal.PruefeAufdeckung(bis);
@@ -87,9 +104,9 @@ public class Pferd
 
         if (trainierteWaehrendSchritt) return;
 
-        // Erholung ohne Training: Kondition und Stimmung steigen langsam Richtung 100,
-        // beschleunigt durch das Suffix-Attribut "Erholung". Feinere Pflege-Mechanik folgt in Phase 3.
-        float erholungsBonus = 1f + ModifikatorSumme(Merkmalsattribut.Erholung) / 100f;
+        // Erholung ohne Training: Kondition und Stimmung steigen langsam Richtung 100, beschleunigt
+        // durch das Suffix-Attribut "Erholung" sowie Hofstufe und Decken-Ausrüstung von außen.
+        float erholungsBonus = 1f + (ModifikatorSumme(Merkmalsattribut.Erholung) + zusatzErholungProzent) / 100f;
         float zuwachs = (float)(bis - von).TotalHours * 2f * erholungsBonus;
         Kondition = MathF.Min(100f, Kondition + zuwachs);
         Stimmung = MathF.Min(100f, Stimmung + zuwachs * 0.5f);

@@ -1,0 +1,110 @@
+[
+  {
+    "Id": "einfacher_sattel",
+    "Name": "Einfacher Sattel",
+    "Slot": "Sattel",
+    "Seltenheit": "Gewoehnlich",
+    "Preis": 80,
+    "Beschreibung": "Solide Handwerksarbeit, nichts Besonderes.",
+    "Effekte": [ { "Attribut": "Rittigkeit", "Wert": 3 } ]
+  },
+  {
+    "Id": "guter_sattel",
+    "Name": "Guter Sattel",
+    "Slot": "Sattel",
+    "Seltenheit": "Solide",
+    "Preis": 220,
+    "Beschreibung": "Gut sitzendes Leder, verzeiht kleine Fehler im Sitz.",
+    "Effekte": [ { "Attribut": "Rittigkeit", "Wert": 6 }, { "Attribut": "Wettkampfverhalten", "Wert": 3 } ]
+  },
+  {
+    "Id": "meistersattel",
+    "Name": "Meistersattel",
+    "Slot": "Sattel",
+    "Seltenheit": "Selten",
+    "Preis": 550,
+    "Beschreibung": "Maßgefertigt, spürbar präziser in der Hilfengebung.",
+    "Effekte": [ { "Attribut": "Rittigkeit", "Wert": 10 }, { "Attribut": "Wettkampfverhalten", "Wert": 6 } ]
+  },
+  {
+    "Id": "einfaches_zaumzeug",
+    "Name": "Einfaches Zaumzeug",
+    "Slot": "Zaumzeug",
+    "Seltenheit": "Gewoehnlich",
+    "Preis": 60,
+    "Beschreibung": "Zweckmäßig und robust.",
+    "Effekte": [ { "Attribut": "Rittigkeit", "Wert": 2 } ]
+  },
+  {
+    "Id": "weiches_zaumzeug",
+    "Name": "Weiches Zaumzeug",
+    "Slot": "Zaumzeug",
+    "Seltenheit": "Solide",
+    "Preis": 180,
+    "Beschreibung": "Feineres Leder, das Pferd nimmt Hilfen williger an.",
+    "Effekte": [ { "Attribut": "Rittigkeit", "Wert": 5 }, { "Attribut": "Trainingsgeschwindigkeit", "Wert": 5 } ]
+  },
+  {
+    "Id": "praezisionszaumzeug",
+    "Name": "Präzisionszaumzeug",
+    "Slot": "Zaumzeug",
+    "Seltenheit": "Selten",
+    "Preis": 480,
+    "Beschreibung": "Jede Hilfe kommt eins zu eins an.",
+    "Effekte": [ { "Attribut": "Rittigkeit", "Wert": 9 }, { "Attribut": "Trainingsgeschwindigkeit", "Wert": 10 } ]
+  },
+  {
+    "Id": "einfacher_beschlag",
+    "Name": "Einfacher Beschlag",
+    "Slot": "Beschlag",
+    "Seltenheit": "Gewoehnlich",
+    "Preis": 70,
+    "Beschreibung": "Frisch vom Schmied, hält den Huf gesund.",
+    "Effekte": [ { "Attribut": "Tempo", "Wert": 3 } ]
+  },
+  {
+    "Id": "wettkampfbeschlag",
+    "Name": "Wettkampfbeschlag",
+    "Slot": "Beschlag",
+    "Seltenheit": "Solide",
+    "Preis": 200,
+    "Beschreibung": "Leichter und griffiger als der Alltagsbeschlag.",
+    "Effekte": [ { "Attribut": "Tempo", "Wert": 6 }, { "Attribut": "Sprungkraft", "Wert": 3 } ]
+  },
+  {
+    "Id": "carbon_beschlag",
+    "Name": "Carbon-Beschlag",
+    "Slot": "Beschlag",
+    "Seltenheit": "Selten",
+    "Preis": 520,
+    "Beschreibung": "Federleicht, für den entscheidenden Vorsprung.",
+    "Effekte": [ { "Attribut": "Tempo", "Wert": 10 }, { "Attribut": "Sprungkraft", "Wert": 6 } ]
+  },
+  {
+    "Id": "einfache_decke",
+    "Name": "Einfache Decke",
+    "Slot": "Decke",
+    "Seltenheit": "Gewoehnlich",
+    "Preis": 50,
+    "Beschreibung": "Hält warm nach dem Training.",
+    "Effekte": [ { "Attribut": "Erholung", "Wert": 5 } ]
+  },
+  {
+    "Id": "waermedecke",
+    "Name": "Wärmedecke",
+    "Slot": "Decke",
+    "Seltenheit": "Solide",
+    "Preis": 150,
+    "Beschreibung": "Isoliert deutlich besser, das Pferd entspannt sich schneller.",
+    "Effekte": [ { "Attribut": "Erholung", "Wert": 10 }, { "Attribut": "Stimmung", "Wert": 5 } ]
+  },
+  {
+    "Id": "thermodecke",
+    "Name": "Thermodecke",
+    "Slot": "Decke",
+    "Seltenheit": "Selten",
+    "Preis": 400,
+    "Beschreibung": "Regelt die Temperatur aktiv, sichtlich wohliger als jede Wolldecke.",
+    "Effekte": [ { "Attribut": "Erholung", "Wert": 18 }, { "Attribut": "Stimmung", "Wert": 10 } ]
+  }
+]

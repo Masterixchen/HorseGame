@@ -1,0 +1,141 @@
+@page "/wettkaempfe"
+@using Core
+@using Web.Speicher
+@inject SpielSitzung Sitzung
+@inject Inhaltsdatenbank Inhalte
+
+<PageTitle>Wettkämpfe</PageTitle>
+
+@if (!Sitzung.Geladen)
+{
+    <p>Lädt...</p>
+}
+else
+{
+    <div class="stall-kopf">
+        <h1>Wettkämpfe</h1>
+        <button class="knopf-sekundaer" @onclick="Aktualisieren">Aktualisieren</button>
+    </div>
+
+    @if (_meldung != null)
+    {
+        <p class="erfolgsmeldung">@_meldung</p>
+    }
+    @if (_fehler != null)
+    {
+        <p class="fehlermeldung">@_fehler</p>
+    }
+
+    <section class="detail-abschnitt">
+        <h2>Pferd anmelden</h2>
+        @if (VerfuegbarePferde.Count == 0)
+        {
+            <p>Kein Pferd verfügbar - alle sind beschäftigt oder noch nicht vollständig aufgedeckt.</p>
+        }
+        else
+        {
+            <label>
+                Pferd
+                <select @bind="_pferdId">
+                    <option value="">- wählen -</option>
+                    @foreach (var p in VerfuegbarePferde)
+                    {
+                        <option value="@p.Id">@p.Name (@Inhalte.HoleRasse(p.RasseId).Name)</option>
+                    }
+                </select>
+            </label>
+        }
+    </section>
+
+    <section class="detail-abschnitt">
+        <h2>Wettkampfklassen</h2>
+        @foreach (var klasse in Inhalte.AlleWettkampfklassen().OrderBy(k => k.BenoetigtesAnsehen))
+        {
+            bool erreicht = Sitzung.Zustand.Ansehen >= klasse.BenoetigtesAnsehen;
+            <div class="merkmal-zeile">
+                <div class="merkmal-kopf">
+                    <span class="merkmal-art">@klasse.Disziplin</span>
+                    <span class="merkmal-name">@klasse.Name</span>
+                </div>
+                <div class="merkmal-beschreibung">
+                    täglich @klasse.Stundenzeitpunkt:00 Uhr · benötigt @klasse.BenoetigtesAnsehen Ansehen
+                    @if (klasse.MinAlter is int minAlter) { <text> · ab @minAlter Jahren</text> }
+                    · Preisgeld @klasse.Preisgeld1 / @klasse.Preisgeld2 / @klasse.Preisgeld3, Antrittsgeld @klasse.Antrittsgeld
+                </div>
+                @if (!erreicht)
+                {
+                    <p class="fohlen-hinweis">🔒 noch nicht freigeschaltet</p>
+                }
+                else
+                {
+                    <button class="knopf-primaer" disabled="@(AusgewaehltesPferd == null)" @onclick="() => Anmelden(klasse)">Anmelden</button>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="detail-abschnitt">
+        <h2>Letzte Ergebnisse</h2>
+        @if (Sitzung.Zustand.WettkampfErgebnisse.Count == 0)
+        {
+            <p>Noch keine Wettkämpfe bestritten.</p>
+        }
+        else
+        {
+            @foreach (var ergebnis in Sitzung.Zustand.WettkampfErgebnisse)
+            {
+                <div class="vorschau-zeile">
+                    <span class="vorschau-label">@ergebnis.Zeitpunkt.ToLocalTime().ToString("dd.MM. HH:mm")</span>
+                    <span>@ergebnis.PferdName - @Inhalte.HoleWettkampfklasse(ergebnis.WettkampfklasseId).Name - Platz @ergebnis.Platzierung</span>
+                    <span class="vorschau-prozent">
+                        @if (ergebnis.Preisgeld > 0) { @($"+{ergebnis.Preisgeld}") }
+                        @if (ergebnis.GewonnenesMaterial != null) { <text> · @ergebnis.GewonnenesMaterial</text> }
+                    </span>
+                </div>
+            }
+        }
+    </section>
+}
+
+@code {
+    private string _pferdId = "";
+    private string? _meldung;
+    private string? _fehler;
+
+    private List<Pferd> VerfuegbarePferde => Sitzung.Zustand.Pferde
+        .Where(p => !p.IstBeschaeftigt && p.AlleMerkmaleBekannt).ToList();
+
+    private Pferd? AusgewaehltesPferd => Guid.TryParse(_pferdId, out var id) ? VerfuegbarePferde.FirstOrDefault(p => p.Id == id) : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Sitzung.Geladen)
+            await Sitzung.LadenOderErzeugenAsync();
+    }
+
+    private async Task Aktualisieren()
+    {
+        Sitzung.Zustand.Advance(DateTime.UtcNow);
+        await Sitzung.SpeichernAsync();
+    }
+
+    private async Task Anmelden(Wettkampfklasse klasse)
+    {
+        _fehler = null;
+        _meldung = null;
+        var pferd = AusgewaehltesPferd;
+        if (pferd == null) return;
+
+        try
+        {
+            Sitzung.Zustand.MeldeAn(klasse, pferd, DateTime.UtcNow);
+            _meldung = $"{pferd.Name} für {klasse.Name} angemeldet, nächster Termin {pferd.Anmeldung!.Zeitpunkt.ToLocalTime():dd.MM. HH:mm}.";
+            _pferdId = "";
+            await Sitzung.SpeichernAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _fehler = ex.Message;
+        }
+    }
+}

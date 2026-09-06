@@ -1,0 +1,182 @@
+@page "/markt"
+@using Core
+@using Web.Speicher
+@inject SpielSitzung Sitzung
+@inject Inhaltsdatenbank Inhalte
+
+<PageTitle>Markt</PageTitle>
+
+@if (!Sitzung.Geladen)
+{
+    <p>Lädt...</p>
+}
+else
+{
+    <div class="stall-kopf">
+        <h1>Markt</h1>
+        <button class="knopf-sekundaer" @onclick="Aktualisieren">Aktualisieren</button>
+    </div>
+
+    @if (_meldung != null)
+    {
+        <p class="erfolgsmeldung">@_meldung</p>
+    }
+    @if (_fehler != null)
+    {
+        <p class="fehlermeldung">@_fehler</p>
+    }
+
+    <section class="detail-abschnitt">
+        <h2>Hof</h2>
+        <p>Hofstufe <strong>@Sitzung.Zustand.Hofstufe</strong> - erzeugt jede Woche @(Sitzung.Zustand.Hofstufe * 2) Materialien und beschleunigt die Erholung aller Pferde.</p>
+        <button class="knopf-primaer" @onclick="Ausbauen">Ausbauen (@Sitzung.Zustand.HofAusbauKosten().ToString("N0"))</button>
+    </section>
+
+    <section class="detail-abschnitt">
+        <h2>Pferdemarkt</h2>
+        @if (Sitzung.Zustand.MarktPferde.Count == 0)
+        {
+            <p>Kein Angebot diese Woche.</p>
+        }
+        <div class="pferde-raster">
+            @foreach (var pferd in Sitzung.Zustand.MarktPferde)
+            {
+                var rasse = Inhalte.HoleRasse(pferd.RasseId);
+                <div class="pferde-karte seltenheit-@pferd.Seltenheit.ToString().ToLowerInvariant()">
+                    <div class="karte-kopf">
+                        <span class="pferde-name">@pferd.Name</span>
+                        <span class="seltenheit-abzeichen">@pferd.Seltenheit</span>
+                    </div>
+                    <div class="karte-unterzeile">@rasse.Name · @pferd.Geschlecht · @pferd.Farbe · Blutlinie @pferd.Blutlinienstufe</div>
+                    <button class="knopf-primaer" @onclick="() => Kaufen(pferd)">Kaufen (@Preisrechner.Kaufpreis(pferd).ToString("N0"))</button>
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="detail-abschnitt">
+        <h2>Eigene Pferde verkaufen</h2>
+        <div class="pferde-raster">
+            @foreach (var pferd in Sitzung.Zustand.Pferde)
+            {
+                var rasse = Inhalte.HoleRasse(pferd.RasseId);
+                <div class="pferde-karte seltenheit-@pferd.Seltenheit.ToString().ToLowerInvariant()">
+                    <div class="karte-kopf">
+                        <span class="pferde-name">@pferd.Name</span>
+                        <span class="seltenheit-abzeichen">@pferd.Seltenheit</span>
+                    </div>
+                    <div class="karte-unterzeile">@rasse.Name · @pferd.Geschlecht · @pferd.Farbe</div>
+                    @if (pferd.IstBeschaeftigt)
+                    {
+                        <p class="fohlen-hinweis">gerade beschäftigt, nicht verkaufbar</p>
+                    }
+                    else
+                    {
+                        <button class="knopf-sekundaer" @onclick="() => Verkaufen(pferd)">Verkaufen (@Preisrechner.Verkaufspreis(pferd).ToString("N0"))</button>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="detail-abschnitt">
+        <h2>Ausrüstung kaufen</h2>
+        @foreach (var slot in Enum.GetValues<AusruestungsSlot>())
+        {
+            <h3>@slot</h3>
+            <div class="material-uebersicht">
+                @foreach (var definition in Inhalte.AlleAusruestung().Where(a => a.Slot == slot))
+                {
+                    <div class="ausruestungs-karte">
+                        <div class="merkmal-name">@definition.Name</div>
+                        <div class="karte-unterzeile">@definition.Seltenheit - @definition.Beschreibung</div>
+                        <div class="karte-unterzeile">@string.Join(", ", definition.Effekte.Select(e => $"{e.Attribut} +{e.Wert:0.#}%"))</div>
+                        <button class="knopf-sekundaer" @onclick="() => KaufeAusruestung(definition)">Kaufen (@definition.Preis.ToString("N0"))</button>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="detail-abschnitt">
+        <h2>Eigene Ausrüstung im Lager</h2>
+        @{
+            var unbenutzt = Sitzung.Zustand.Ausruestungen.Where(a => a.AngelegtBeiPferdId == null).ToList();
+        }
+        @if (unbenutzt.Count == 0)
+        {
+            <p>Nichts im Lager - Ausrüstung wird auf der Detailseite eines Pferdes angelegt.</p>
+        }
+        else
+        {
+            <ul>
+                @foreach (var ausruestung in unbenutzt)
+                {
+                    <li>@Inhalte.HoleAusruestung(ausruestung.DefinitionId).Name</li>
+                }
+            </ul>
+        }
+    </section>
+}
+
+@code {
+    private string? _meldung;
+    private string? _fehler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Sitzung.Geladen)
+            await Sitzung.LadenOderErzeugenAsync();
+        Sitzung.Zustand.AktualisiereMarktFallsFaellig(Inhalte, DateTime.UtcNow);
+    }
+
+    private async Task Aktualisieren()
+    {
+        Sitzung.Zustand.Advance(DateTime.UtcNow);
+        Sitzung.Zustand.AktualisiereMarktFallsFaellig(Inhalte, DateTime.UtcNow);
+        await Sitzung.SpeichernAsync();
+    }
+
+    private async Task Ausbauen()
+    {
+        Melden(() => Sitzung.Zustand.HofAusbauen(), "Hof ausgebaut.");
+        await Sitzung.SpeichernAsync();
+    }
+
+    private async Task Kaufen(Pferd pferd)
+    {
+        Melden(() => Sitzung.Zustand.KaufeMarktpferd(pferd), $"{pferd.Name} gekauft.");
+        await Sitzung.SpeichernAsync();
+    }
+
+    private async Task Verkaufen(Pferd pferd)
+    {
+        Melden(() =>
+        {
+            var material = Sitzung.Zustand.VerkaufePferd(pferd);
+            _meldung = material == null ? $"{pferd.Name} verkauft." : $"{pferd.Name} verkauft, dazu {material} erhalten.";
+        }, null);
+        await Sitzung.SpeichernAsync();
+    }
+
+    private async Task KaufeAusruestung(AusruestungsDefinition definition)
+    {
+        Melden(() => Sitzung.Zustand.KaufeAusruestung(definition), $"{definition.Name} gekauft.");
+        await Sitzung.SpeichernAsync();
+    }
+
+    private void Melden(Action aktion, string? erfolgsmeldung)
+    {
+        _fehler = null;
+        _meldung = null;
+        try
+        {
+            aktion();
+            if (erfolgsmeldung != null) _meldung = erfolgsmeldung;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _fehler = ex.Message;
+        }
+    }
+}

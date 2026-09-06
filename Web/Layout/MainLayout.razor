@@ -1,4 +1,7 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@using Web.Speicher
+@inject SpielSitzung Sitzung
 
 <div class="app-rahmen">
     <header class="kopfzeile">
@@ -6,9 +9,32 @@
         <nav class="hauptnav">
             <NavLink href="/" Match="NavLinkMatch.All">Stall</NavLink>
             <NavLink href="/zucht">Zucht</NavLink>
+            <NavLink href="/markt">Markt</NavLink>
+            <NavLink href="/wettkaempfe">Wettkämpfe</NavLink>
         </nav>
+        @if (Sitzung.Geladen)
+        {
+            <div class="kopf-kennzahlen">
+                <span title="Guthaben">💰 @Sitzung.Zustand.Guthaben.ToString("N0")</span>
+                <span title="Ansehen">🏆 @Sitzung.Zustand.Ansehen.ToString("N0")</span>
+            </div>
+        }
     </header>
     <main class="inhalt">
         @Body
     </main>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Sitzung.ZustandGeaendert += Aktualisieren;
+    }
+
+    private void Aktualisieren() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Sitzung.ZustandGeaendert -= Aktualisieren;
+    }
+}

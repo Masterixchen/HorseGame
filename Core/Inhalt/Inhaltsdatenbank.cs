@@ -12,6 +12,8 @@ public class Inhaltsdatenbank
 {
     private readonly Dictionary<string, Rasse> _rassen;
     private readonly Dictionary<string, MerkmalsDefinition> _merkmale;
+    private readonly Dictionary<string, Wettkampfklasse> _wettkampfklassen;
+    private readonly Dictionary<string, AusruestungsDefinition> _ausruestung;
     private readonly List<string> _namenStuten;
     private readonly List<string> _namenHengste;
 
@@ -25,6 +27,8 @@ public class Inhaltsdatenbank
 
         _rassen = LadeListe<Rasse>("rassen.json", optionen).ToDictionary(r => r.Id);
         _merkmale = LadeListe<MerkmalsDefinition>("merkmale.json", optionen).ToDictionary(m => m.Id);
+        _wettkampfklassen = LadeListe<Wettkampfklasse>("wettkampfklassen.json", optionen).ToDictionary(k => k.Id);
+        _ausruestung = LadeListe<AusruestungsDefinition>("ausruestung.json", optionen).ToDictionary(a => a.Id);
 
         var namen = LadeObjekt<NamensListen>("namen.json", optionen);
         _namenStuten = namen.Stuten;
@@ -33,8 +37,12 @@ public class Inhaltsdatenbank
 
     public IReadOnlyCollection<Rasse> AlleRassen() => _rassen.Values;
     public IReadOnlyCollection<MerkmalsDefinition> AlleMerkmale() => _merkmale.Values;
+    public IReadOnlyCollection<Wettkampfklasse> AlleWettkampfklassen() => _wettkampfklassen.Values;
+    public IReadOnlyCollection<AusruestungsDefinition> AlleAusruestung() => _ausruestung.Values;
     public Rasse HoleRasse(string id) => _rassen[id];
     public MerkmalsDefinition HoleMerkmal(string id) => _merkmale[id];
+    public Wettkampfklasse HoleWettkampfklasse(string id) => _wettkampfklassen[id];
+    public AusruestungsDefinition HoleAusruestung(string id) => _ausruestung[id];
     public IReadOnlyList<string> NamenFuer(Geschlecht geschlecht) => geschlecht == Geschlecht.Stute ? _namenStuten : _namenHengste;
 
     private static List<T> LadeListe<T>(string dateiname, JsonSerializerOptions optionen) => LadeObjekt<List<T>>(dateiname, optionen);

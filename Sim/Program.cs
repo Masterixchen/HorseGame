@@ -11,3 +11,9 @@ Console.WriteLine(new string('-', 60));
 Console.WriteLine();
 
 Zuchtbericht.Drucken(zufall, inhalte);
+
+Console.WriteLine();
+Console.WriteLine(new string('-', 60));
+Console.WriteLine();
+
+Wirtschaftsbericht.Drucken(inhalte);

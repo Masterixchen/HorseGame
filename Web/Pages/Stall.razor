@@ -62,6 +62,10 @@ else
                     {
                         <span class="training-status">🏋 Training bis @pferd.AktivesTraining.Ende.ToLocalTime().ToString("dd.MM. HH:mm")</span>
                     }
+                    else if (pferd.Anmeldung != null)
+                    {
+                        <span class="training-status">🏆 @pferd.Anmeldung.Klasse.Name am @pferd.Anmeldung.Zeitpunkt.ToLocalTime().ToString("dd.MM. HH:mm")</span>
+                    }
                     else if (!pferd.AlleMerkmaleBekannt)
                     {
                         <span class="training-status">wächst noch heran</span>
