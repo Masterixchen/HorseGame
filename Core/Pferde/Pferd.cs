@@ -24,7 +24,16 @@ public class Pferd
 
     public Training? AktivesTraining { get; set; }
 
+    // Nur bei Stuten belegt, solange eine Zucht läuft. Wird von Spielstand.Advance ausgewertet,
+    // weil die Geburt ein neues Pferd zur Stallliste hinzufügt - das kann eine einzelne Pferd-
+    // Instanz nicht selbst auslösen.
+    public Traechtigkeit? Traechtigkeit { get; set; }
+
     public int AlterInJahren(DateTime bezugsdatum) => (int)((bezugsdatum - Geburtsdatum).TotalDays / 365.25);
+
+    /// <summary>Solange noch nicht alle Merkmale aufgedeckt sind, eignet sich das Pferd nicht als
+    /// Zuchtpartner - eine ehrliche Vorschau braucht bekannte Ausgangswerte.</summary>
+    public bool AlleMerkmaleBekannt => AlleMerkmale().All(m => m.Bekannt);
 
     /// <summary>Alle Merkmale zusammen - praktisch für Anzeige und für die Modifikator-Summe.</summary>
     public IEnumerable<MerkmalsInstanz> AlleMerkmale()
@@ -65,6 +74,9 @@ public class Pferd
     /// Schritten von höchstens einer Stunde aufgerufen, damit sich nichts überholt.</summary>
     public void Advance(DateTime von, DateTime bis)
     {
+        foreach (var merkmal in AlleMerkmale())
+            merkmal.PruefeAufdeckung(bis);
+
         bool trainierteWaehrendSchritt = AktivesTraining != null;
 
         if (AktivesTraining != null && AktivesTraining.Ende <= bis)

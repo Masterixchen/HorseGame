@@ -32,6 +32,7 @@ public class Inhaltsdatenbank
     }
 
     public IReadOnlyCollection<Rasse> AlleRassen() => _rassen.Values;
+    public IReadOnlyCollection<MerkmalsDefinition> AlleMerkmale() => _merkmale.Values;
     public Rasse HoleRasse(string id) => _rassen[id];
     public MerkmalsDefinition HoleMerkmal(string id) => _merkmale[id];
     public IReadOnlyList<string> NamenFuer(Geschlecht geschlecht) => geschlecht == Geschlecht.Stute ? _namenStuten : _namenHengste;

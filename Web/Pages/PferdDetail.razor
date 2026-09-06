@@ -34,16 +34,23 @@ else
 
     <section class="detail-abschnitt">
         <h2>Werte</h2>
-        @foreach (var (typ, stat) in _pferd.Werte.Alle())
+        @if (!_pferd.AlleMerkmaleBekannt)
         {
-            <div class="wert-zeile-gross">
-                <span class="wert-name">@typ</span>
-                <div class="balken-hintergrund balken-gross">
-                    <div class="balken-potenzial" style="width:@(Prozent(stat.Potenzial))%"></div>
-                    <div class="balken-aktuell" style="width:@(Prozent(stat.Aktuell))%"></div>
+            <p class="fohlen-hinweis">🌱 Die Werte zeigen sich erst vollständig, wenn alle Merkmale aufgedeckt sind.</p>
+        }
+        else
+        {
+            @foreach (var (typ, stat) in _pferd.Werte.Alle())
+            {
+                <div class="wert-zeile-gross">
+                    <span class="wert-name">@typ</span>
+                    <div class="balken-hintergrund balken-gross">
+                        <div class="balken-potenzial" style="width:@(Prozent(stat.Potenzial))%"></div>
+                        <div class="balken-aktuell" style="width:@(Prozent(stat.Aktuell))%"></div>
+                    </div>
+                    <span class="wert-zahl">@stat.Aktuell.ToString("F1") / @stat.Potenzial.ToString("F1")</span>
                 </div>
-                <span class="wert-zahl">@stat.Aktuell.ToString("F1") / @stat.Potenzial.ToString("F1")</span>
-            </div>
+            }
         }
         <div class="wert-zeile-gross">
             <span class="wert-name">Kondition</span>
@@ -65,47 +72,76 @@ else
         <h2>Merkmale</h2>
         @foreach (var merkmal in _pferd.AlleMerkmale())
         {
-            var definition = Inhalte.HoleMerkmal(merkmal.DefinitionId);
-            <div class="merkmal-zeile">
-                <div class="merkmal-kopf">
-                    <span class="merkmal-art merkmal-art-@definition.Art.ToString().ToLowerInvariant()">@definition.Art</span>
-                    <span class="merkmal-name">@definition.Name @merkmal.StufeRoemisch()</span>
-                </div>
-                <div class="merkmal-beschreibung">@definition.Beschreibung</div>
-                @foreach (var effekt in merkmal.Effekte)
-                {
-                    <div class="effekt-zeile">
-                        <span class="effekt-attribut">@effekt.Attribut</span>
-                        <span class="effekt-wert">@effekt.Wert.ToString("+0.0;-0.0")%</span>
-                        <div class="positions-balken">
-                            <div class="positions-marker" style="left:@((effekt.Position * 100).ToString(System.Globalization.CultureInfo.InvariantCulture))%"></div>
-                        </div>
-                        <span class="effekt-bereich">(@effekt.Min.ToString("+0.0;-0.0") bis @effekt.Max.ToString("+0.0;-0.0"))</span>
+            @if (!merkmal.Bekannt)
+            {
+                <div class="merkmal-zeile merkmal-verborgen">
+                    <div class="merkmal-kopf">
+                        <span class="merkmal-art">???</span>
+                        <span class="merkmal-name">deckt sich auf am @merkmal.Aufdeckzeitpunkt!.Value.ToLocalTime().ToString("dd.MM.yyyy")</span>
                     </div>
-                }
-            </div>
+                </div>
+            }
+            else
+            {
+                var definition = Inhalte.HoleMerkmal(merkmal.DefinitionId);
+                <div class="merkmal-zeile">
+                    <div class="merkmal-kopf">
+                        <span class="merkmal-art merkmal-art-@definition.Art.ToString().ToLowerInvariant()">@definition.Art</span>
+                        <span class="merkmal-name">@definition.Name @merkmal.StufeRoemisch()</span>
+                    </div>
+                    <div class="merkmal-beschreibung">@definition.Beschreibung</div>
+                    @foreach (var effekt in merkmal.Effekte)
+                    {
+                        <div class="effekt-zeile">
+                            <span class="effekt-attribut">@effekt.Attribut</span>
+                            <span class="effekt-wert">@effekt.Wert.ToString("+0.0;-0.0")%</span>
+                            <div class="positions-balken">
+                                <div class="positions-marker" style="left:@((effekt.Position * 100).ToString(System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                            </div>
+                            <span class="effekt-bereich">(@effekt.Min.ToString("+0.0;-0.0") bis @effekt.Max.ToString("+0.0;-0.0"))</span>
+                        </div>
+                    }
+                </div>
+            }
         }
     </section>
 
-    <section class="detail-abschnitt">
-        <h2>Training</h2>
-        @if (_pferd.AktivesTraining != null)
-        {
-            <p>Trainiert gerade <strong>@_pferd.AktivesTraining.Ziel</strong>, fertig am @_pferd.AktivesTraining.Ende.ToLocalTime().ToString("dd.MM.yyyy HH:mm").</p>
-        }
-        else
-        {
-            <div class="training-formular">
-                <select @bind="_trainingsZiel">
-                    @foreach (var typ in Enum.GetValues<StatTyp>())
-                    {
-                        <option value="@typ">@typ</option>
-                    }
-                </select>
-                <button class="knopf-primaer" @onclick="TrainingStarten">Training starten (4-8 Std.)</button>
-            </div>
-        }
-    </section>
+    @if (_pferd.Traechtigkeit != null)
+    {
+        <section class="detail-abschnitt">
+            <h2>Trächtigkeit</h2>
+            <p>Geburt am <strong>@_pferd.Traechtigkeit.Geburtstermin.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</strong>.</p>
+        </section>
+    }
+    else if (!_pferd.AlleMerkmaleBekannt)
+    {
+        <section class="detail-abschnitt">
+            <h2>Training</h2>
+            <p>Solange nicht alle Merkmale aufgedeckt sind, ist noch kein gezieltes Training möglich.</p>
+        </section>
+    }
+    else
+    {
+        <section class="detail-abschnitt">
+            <h2>Training</h2>
+            @if (_pferd.AktivesTraining != null)
+            {
+                <p>Trainiert gerade <strong>@_pferd.AktivesTraining.Ziel</strong>, fertig am @_pferd.AktivesTraining.Ende.ToLocalTime().ToString("dd.MM.yyyy HH:mm").</p>
+            }
+            else
+            {
+                <div class="training-formular">
+                    <select @bind="_trainingsZiel">
+                        @foreach (var typ in Enum.GetValues<StatTyp>())
+                        {
+                            <option value="@typ">@typ</option>
+                        }
+                    </select>
+                    <button class="knopf-primaer" @onclick="TrainingStarten">Training starten (4-8 Std.)</button>
+                </div>
+            }
+        </section>
+    }
 }
 
 @code {

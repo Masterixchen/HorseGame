@@ -33,23 +33,38 @@ else
                 </div>
                 <div class="karte-unterzeile">@rasse.Name · @pferd.Geschlecht · @pferd.Farbe</div>
 
-                <div class="werte-liste">
-                    @foreach (var (typ, stat) in pferd.Werte.Alle())
-                    {
-                        <div class="wert-zeile">
-                            <span class="wert-name">@typ</span>
-                            <div class="balken-hintergrund">
-                                <div class="balken-potenzial" style="width:@(Prozent(stat.Potenzial, 100))%"></div>
-                                <div class="balken-aktuell" style="width:@(Prozent(stat.Aktuell, 100))%"></div>
+                @if (!pferd.AlleMerkmaleBekannt)
+                {
+                    <p class="fohlen-hinweis">🌱 Fohlen - Merkmale decken sich nach und nach auf</p>
+                }
+                else
+                {
+                    <div class="werte-liste">
+                        @foreach (var (typ, stat) in pferd.Werte.Alle())
+                        {
+                            <div class="wert-zeile">
+                                <span class="wert-name">@typ</span>
+                                <div class="balken-hintergrund">
+                                    <div class="balken-potenzial" style="width:@(Prozent(stat.Potenzial, 100))%"></div>
+                                    <div class="balken-aktuell" style="width:@(Prozent(stat.Aktuell, 100))%"></div>
+                                </div>
                             </div>
-                        </div>
-                    }
-                </div>
+                        }
+                    </div>
+                }
 
                 <div class="karte-fuss">
-                    @if (pferd.AktivesTraining != null)
+                    @if (pferd.Traechtigkeit != null)
+                    {
+                        <span class="training-status">🐴 trächtig, Geburt am @pferd.Traechtigkeit.Geburtstermin.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                    }
+                    else if (pferd.AktivesTraining != null)
                     {
                         <span class="training-status">🏋 Training bis @pferd.AktivesTraining.Ende.ToLocalTime().ToString("dd.MM. HH:mm")</span>
+                    }
+                    else if (!pferd.AlleMerkmaleBekannt)
+                    {
+                        <span class="training-status">wächst noch heran</span>
                     }
                     else
                     {

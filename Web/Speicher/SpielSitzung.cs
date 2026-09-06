@@ -54,6 +54,16 @@ public class SpielSitzung
             var rasse = zufall.Waehle(rassen);
             stand.Pferde.Add(PferdeGenerator.Erzeuge(zufall, _inhalte, rasse, DateTime.UtcNow));
         }
+
+        // Solange es noch keine Wirtschaft gibt (Phase 3: Wettkämpfe, Hof-Erzeugung, Verkäufe),
+        // startet jedes Spiel mit einer kleinen Grundausstattung, damit sich die Zucht ausprobieren lässt.
+        stand.Materialbestand[MaterialTyp.Kraftfutter] = 3;
+        stand.Materialbestand[MaterialTyp.Ahnentafel] = 2;
+        stand.Materialbestand[MaterialTyp.Fremdblut] = 2;
+        stand.Materialbestand[MaterialTyp.Spezialistenbetreuung] = 2;
+        stand.Materialbestand[MaterialTyp.SelteneLinie] = 1;
+        stand.Materialbestand[MaterialTyp.Wagnis] = 2;
+
         return stand;
     }
 }

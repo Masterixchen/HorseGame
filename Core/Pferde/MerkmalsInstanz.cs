@@ -21,6 +21,20 @@ public class MerkmalsInstanz
     public int Stufe { get; set; }
     public List<GewuerfelterEffekt> Effekte { get; set; } = new();
 
+    // Bei Fohlen aus der Zucht ist ein Merkmal anfangs verborgen und deckt sich erst mit der Zeit
+    // auf (siehe "Unbekannte Merkmale" in der Projektanweisung). Bei allen anderen Pferden
+    // (Marktbestand, Startpferde) ist per Vorgabe alles von Anfang an bekannt.
+    public bool Bekannt { get; set; } = true;
+    public DateTime? Aufdeckzeitpunkt { get; set; }
+
+    /// <summary>Prüft, ob die Aufdeckung fällig ist, und schaltet das Merkmal ggf. frei. Wird von
+    /// Pferd.Advance für jedes Merkmal aufgerufen.</summary>
+    public void PruefeAufdeckung(DateTime bis)
+    {
+        if (!Bekannt && Aufdeckzeitpunkt != null && Aufdeckzeitpunkt <= bis)
+            Bekannt = true;
+    }
+
     /// <summary>Römische Ziffer für die Anzeige, z.B. "III".</summary>
     public string StufeRoemisch() => Stufe switch
     {

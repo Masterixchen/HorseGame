@@ -131,6 +131,9 @@ html, body {
 }
 
 .kopfzeile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 1rem 0;
     border-bottom: 2px solid var(--farbe-rand);
     margin-bottom: 1.5rem;
@@ -141,6 +144,24 @@ html, body {
     font-weight: 700;
     color: var(--farbe-akzent);
     text-decoration: none;
+}
+
+.hauptnav {
+    display: flex;
+    gap: 1.2rem;
+}
+
+.hauptnav a {
+    color: var(--farbe-text-schwach);
+    text-decoration: none;
+    font-weight: 600;
+    padding-bottom: 0.2rem;
+    border-bottom: 2px solid transparent;
+}
+
+.hauptnav a.active {
+    color: var(--farbe-akzent);
+    border-bottom-color: var(--farbe-akzent);
 }
 
 .stall-kopf {
@@ -404,4 +425,94 @@ select {
     display: flex;
     gap: 0.6rem;
     align-items: center;
+}
+
+.fohlen-hinweis {
+    color: var(--farbe-text-schwach);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.merkmal-verborgen .merkmal-art {
+    background: var(--farbe-hintergrund);
+}
+
+.merkmal-verborgen .merkmal-name {
+    color: var(--farbe-text-schwach);
+    font-weight: 400;
+    font-style: italic;
+}
+
+.fehlermeldung {
+    color: var(--farbe-elite);
+}
+
+.erfolgsmeldung {
+    color: var(--farbe-solide);
+}
+
+/* ----- Zuchtplanung ----- */
+
+.material-uebersicht {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.material-badge {
+    background: var(--farbe-hintergrund);
+    border: 1px solid var(--farbe-rand);
+    border-radius: 0.4rem;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.85rem;
+}
+
+.zucht-eltern {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.zucht-eltern label, .material-formular label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--farbe-text-schwach);
+}
+
+.material-formular {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.material-formular label {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.zucht-aktionen {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.vorschau-zeile {
+    display: grid;
+    grid-template-columns: 130px 1fr 60px;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+}
+
+.vorschau-label {
+    text-transform: capitalize;
+}
+
+.vorschau-prozent {
+    text-align: right;
+    color: var(--farbe-text-schwach);
 }

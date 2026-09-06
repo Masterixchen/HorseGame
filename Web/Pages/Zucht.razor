@@ -1,0 +1,225 @@
+@page "/zucht"
+@using Core
+@using Web.Speicher
+@inject SpielSitzung Sitzung
+@inject Inhaltsdatenbank Inhalte
+
+<PageTitle>Zucht</PageTitle>
+
+<h1>Zuchtplanung</h1>
+
+@if (!Sitzung.Geladen)
+{
+    <p>Lädt...</p>
+}
+else
+{
+    <section class="detail-abschnitt">
+        <h2>Materialbestand</h2>
+        <div class="material-uebersicht">
+            @foreach (var typ in Enum.GetValues<MaterialTyp>())
+            {
+                <span class="material-badge">@Anzeigename(typ): @Bestand(typ)</span>
+            }
+        </div>
+    </section>
+
+    <section class="detail-abschnitt">
+        <h2>Elterntiere</h2>
+        @if (Stuten.Count == 0 || Hengste.Count == 0)
+        {
+            <p>Es braucht mindestens eine unverpaarte, vollständig aufgedeckte Stute und einen Hengst.</p>
+        }
+        <div class="zucht-eltern">
+            <label>
+                Mutter (Stute)
+                <select @bind="_mutterId">
+                    <option value="">- wählen -</option>
+                    @foreach (var p in Stuten)
+                    {
+                        <option value="@p.Id">@p.Name (@Inhalte.HoleRasse(p.RasseId).Name, Blutlinie @p.Blutlinienstufe)</option>
+                    }
+                </select>
+            </label>
+            <label>
+                Vater (Hengst)
+                <select @bind="_vaterId">
+                    <option value="">- wählen -</option>
+                    @foreach (var p in Hengste)
+                    {
+                        <option value="@p.Id">@p.Name (@Inhalte.HoleRasse(p.RasseId).Name, Blutlinie @p.Blutlinienstufe)</option>
+                    }
+                </select>
+            </label>
+        </div>
+    </section>
+
+    <section class="detail-abschnitt">
+        <h2>Materialien einlegen</h2>
+        <div class="material-formular">
+            <label><input type="checkbox" @bind="_einsatz.Kraftfutter" disabled="@(Bestand(MaterialTyp.Kraftfutter) == 0)" /> Kraftfutter (@Bestand(MaterialTyp.Kraftfutter)) - hebt die Blutlinienstufe leicht an</label>
+            <label><input type="checkbox" @bind="_einsatz.Ahnentafel" disabled="@(Bestand(MaterialTyp.Ahnentafel) == 0)" /> Ahnentafel (@Bestand(MaterialTyp.Ahnentafel)) - garantiert mindestens ein Präfix und ein Suffix</label>
+            <label><input type="checkbox" @bind="_einsatz.SelteneLinie" disabled="@(Bestand(MaterialTyp.SelteneLinie) == 0)" /> Seltene Linie (@Bestand(MaterialTyp.SelteneLinie)) - hebt die maximal mögliche Merkmalsstufe deutlich an</label>
+            <label><input type="checkbox" @bind="_einsatz.Wagnis" disabled="@(Bestand(MaterialTyp.Wagnis) == 0)" /> Wagnis (@Bestand(MaterialTyp.Wagnis)) - hohe Streuung nach oben und unten, nicht mit Garantien kombinierbar</label>
+
+            <label>
+                Fremdblut (@Bestand(MaterialTyp.Fremdblut)) - garantiert ein Merkmal aus gewählter Familie
+                <select @bind="_fremdblutFamilie" disabled="@(Bestand(MaterialTyp.Fremdblut) == 0)">
+                    <option value="">nicht genutzt</option>
+                    @foreach (var familie in Familien)
+                    {
+                        <option value="@familie">@familie</option>
+                    }
+                </select>
+            </label>
+
+            <label>
+                Spezialistenbetreuung (@Bestand(MaterialTyp.Spezialistenbetreuung)) - fügt gezielt ein Merkmal auf Stufe I hinzu
+                <select @bind="_spezialistenMerkmalId" disabled="@(Bestand(MaterialTyp.Spezialistenbetreuung) == 0)">
+                    <option value="">nicht genutzt</option>
+                    @foreach (var merkmal in WaehlbareMerkmale)
+                    {
+                        <option value="@merkmal.Id">@merkmal.Name (@merkmal.Art)</option>
+                    }
+                </select>
+            </label>
+        </div>
+        @if (!HoleEinsatz().IstGueltig())
+        {
+            <p class="fehlermeldung">Wagnis lässt sich nicht mit Garantie-Materialien (Ahnentafel, Fremdblut, Spezialistenbetreuung) kombinieren.</p>
+        }
+    </section>
+
+    <div class="zucht-aktionen">
+        <button class="knopf-sekundaer" @onclick="VorschauBerechnen" disabled="@(!KannZuechten)">Vorschau berechnen</button>
+        <button class="knopf-primaer" @onclick="ZuchtBestaetigen" disabled="@(!KannZuechten)">Zucht bestätigen</button>
+    </div>
+
+    @if (_fehlermeldung != null)
+    {
+        <p class="fehlermeldung">@_fehlermeldung</p>
+    }
+    @if (_erfolgsmeldung != null)
+    {
+        <p class="erfolgsmeldung">@_erfolgsmeldung</p>
+    }
+
+    @if (_vorschau != null)
+    {
+        <section class="detail-abschnitt">
+            <h2>Ehrliche Vorschau</h2>
+            <p>Blutlinienstufe des Fohlens: <strong>@_vorschau.BlutlinienstufeMin bis @_vorschau.BlutlinienstufeMax</strong></p>
+
+            <h3>Seltenheit</h3>
+            @foreach (var stufe in Enum.GetValues<Seltenheit>().Where(s => s != Seltenheit.Einzigartig))
+            {
+                <div class="vorschau-zeile">
+                    <span class="vorschau-label">@stufe</span>
+                    <div class="balken-hintergrund">
+                        <div class="balken-aktuell" style="width:@Prozent(_vorschau.SeltenheitsChancen.GetValueOrDefault(stufe))%"></div>
+                    </div>
+                    <span class="vorschau-prozent">@((_vorschau.SeltenheitsChancen.GetValueOrDefault(stufe) * 100).ToString("F1"))%</span>
+                </div>
+            }
+
+            <h3>Merkmalsfamilien</h3>
+            @if (_vorschau.FamilienChancen.Count == 0)
+            {
+                <p>Keine besonderen Familien wahrscheinlich.</p>
+            }
+            else
+            {
+                @foreach (var eintrag in _vorschau.FamilienChancen.OrderByDescending(kv => kv.Value))
+                {
+                    <div class="vorschau-zeile">
+                        <span class="vorschau-label">@eintrag.Key</span>
+                        <div class="balken-hintergrund">
+                            <div class="balken-aktuell" style="width:@Prozent(eintrag.Value)%"></div>
+                        </div>
+                        <span class="vorschau-prozent">@((eintrag.Value * 100).ToString("F1"))%</span>
+                    </div>
+                }
+            }
+        </section>
+    }
+}
+
+@code {
+    private string _mutterId = "";
+    private string _vaterId = "";
+    private readonly ZuchtEinsatz _einsatz = new();
+    private string _fremdblutFamilie = "";
+    private string _spezialistenMerkmalId = "";
+    private ZuchtVorschauErgebnis? _vorschau;
+    private string? _fehlermeldung;
+    private string? _erfolgsmeldung;
+
+    private List<Pferd> Stuten => Sitzung.Zustand.Pferde
+        .Where(p => p.Geschlecht == Geschlecht.Stute && p.AlleMerkmaleBekannt && p.Traechtigkeit == null).ToList();
+    private List<Pferd> Hengste => Sitzung.Zustand.Pferde
+        .Where(p => p.Geschlecht == Geschlecht.Hengst && p.AlleMerkmaleBekannt).ToList();
+    private List<string> Familien => Inhalte.AlleMerkmale()
+        .Select(m => m.Familie).Where(f => !string.IsNullOrEmpty(f) && f != "rasse").Distinct().OrderBy(f => f).ToList();
+    private List<MerkmalsDefinition> WaehlbareMerkmale => Inhalte.AlleMerkmale()
+        .Where(m => m.Art != MerkmalsArt.Implizit).OrderBy(m => m.Name).ToList();
+
+    private Pferd? Mutter => Guid.TryParse(_mutterId, out var id) ? Stuten.FirstOrDefault(p => p.Id == id) : null;
+    private Pferd? Vater => Guid.TryParse(_vaterId, out var id) ? Hengste.FirstOrDefault(p => p.Id == id) : null;
+
+    private int Bestand(MaterialTyp typ) => Sitzung.Zustand.Materialbestand.GetValueOrDefault(typ);
+
+    private ZuchtEinsatz HoleEinsatz()
+    {
+        _einsatz.FremdblutFamilie = string.IsNullOrEmpty(_fremdblutFamilie) ? null : _fremdblutFamilie;
+        _einsatz.SpezialistenMerkmalId = string.IsNullOrEmpty(_spezialistenMerkmalId) ? null : _spezialistenMerkmalId;
+        return _einsatz;
+    }
+
+    private bool KannZuechten => Mutter != null && Vater != null && HoleEinsatz().IstGueltig();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Sitzung.Geladen)
+            await Sitzung.LadenOderErzeugenAsync();
+    }
+
+    private void VorschauBerechnen()
+    {
+        _fehlermeldung = null;
+        _erfolgsmeldung = null;
+        if (Mutter == null || Vater == null) return;
+        _vorschau = ZuchtVorschau.Berechne(Inhalte, Mutter, Vater, HoleEinsatz());
+    }
+
+    private async Task ZuchtBestaetigen()
+    {
+        _fehlermeldung = null;
+        _erfolgsmeldung = null;
+        if (Mutter == null || Vater == null) return;
+        var mutter = Mutter;
+
+        try
+        {
+            Sitzung.Zustand.StarteZucht(Inhalte, mutter, Vater, HoleEinsatz(), DateTime.UtcNow);
+            await Sitzung.SpeichernAsync();
+            _erfolgsmeldung = $"{mutter.Name} ist jetzt trächtig. Geburt am {mutter.Traechtigkeit!.Geburtstermin.ToLocalTime():dd.MM.yyyy}.";
+            _vorschau = null;
+            _mutterId = "";
+            _vaterId = "";
+            _einsatz.Kraftfutter = _einsatz.Ahnentafel = _einsatz.SelteneLinie = _einsatz.Wagnis = false;
+            _fremdblutFamilie = "";
+            _spezialistenMerkmalId = "";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _fehlermeldung = ex.Message;
+        }
+    }
+
+    private static string Prozent(double anteil) =>
+        Math.Clamp(anteil * 100, 0, 100).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    // "SelteneLinie" -> "Seltene Linie": vor jedem Großbuchstaben (außer am Anfang) ein Leerzeichen.
+    private static string Anzeigename(MaterialTyp typ) =>
+        System.Text.RegularExpressions.Regex.Replace(typ.ToString(), "(?<!^)([A-Z])", " $1");
+}

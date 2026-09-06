@@ -52,24 +52,8 @@ public static class PferdeGenerator
 
     private static MerkmalsInstanz WuerfleMerkmal(GameRandom zufall, MerkmalsDefinition definition, int blutlinienstufe)
     {
-        // Die Blutlinienstufe begrenzt, welche Merkmalsstufe überhaupt möglich ist - ein
-        // Spitzenmerkmal aus einer schwachen Linie darf es laut Projektanweisung nicht geben.
-        int maxStufe = Math.Clamp((blutlinienstufe + 1) / 2, 1, definition.Stufen.Count);
-        var moegliche = definition.Stufen.Where(s => s.Stufe <= maxStufe).ToList();
-        var stufe = moegliche.Count > 0 ? zufall.Waehle(moegliche) : definition.Stufen[0];
-
-        var instanz = new MerkmalsInstanz { DefinitionId = definition.Id, Stufe = stufe.Stufe };
-        foreach (var effekt in stufe.Effekte)
-        {
-            instanz.Effekte.Add(new GewuerfelterEffekt
-            {
-                Attribut = effekt.Attribut,
-                Min = effekt.Min,
-                Max = effekt.Max,
-                Wert = zufall.NaechsterBereich(effekt.Min, effekt.Max)
-            });
-        }
-        return instanz;
+        int maxStufe = BlutlinienRegeln.MaxMerkmalsstufe(blutlinienstufe, definition.Stufen.Count);
+        return MerkmalsWuerfler.Wuerfle(zufall, definition, maxStufe);
     }
 
     private static StatBlock WuerfleWerte(GameRandom zufall, Rasse rasse, Pferd pferd)
