@@ -165,8 +165,12 @@ Jedes hat einen kurzen Text, der erklärt, woher es kommt.
 
 Alles hier ist verlustfrei und planbar. Kein Zufall, keine Rückschläge.
 
-- **Training** nähert die Werte dem Potenzial an, mit abnehmendem Ertrag.
-  Dauer vier bis acht Stunden je Einheit.
+- **Training** läuft über eine Warteschlange aus mehreren Einheiten, die sich von
+  selbst abarbeitet, auch während das Spiel geschlossen ist. Nicht die Uhr begrenzt
+  das Training, sondern die Kondition: jede Einheit kostet Kondition und dauert nur
+  wenige Minuten (5 bis 12, je nach gewählter Intensität), nähert die Werte dem
+  Potenzial an mit abnehmendem Ertrag. Reicht die Kondition nicht, pausiert die
+  Warteschlange von selbst und läuft weiter, sobald sich das Pferd erholt hat.
 - **Ausrüstung** — Sattel, Zaumzeug, Beschlag, Decken — gibt Boni, die man zwischen
   Pferden umhängen kann. Ausrüstung ist die zweite Sammelachse und darf ruhig
   eigene Seltenheitsstufen haben.
@@ -193,8 +197,11 @@ Wertung = Summe(Wert * Gewicht)
 Gegner werden um einen stufenabhängigen Basiswert gestreut. Preisgeld für die ersten
 drei, kleines Antrittsgeld bis Platz sechs, Materialien als Zusatzpreis.
 
-Wettkämpfe finden zu festen Uhrzeiten statt. Man meldet vorher an und sieht das
-Ergebnis beim nächsten Reinschauen — Anwesenheit zum Zeitpunkt ist nicht nötig.
+Wettkämpfe finden in festen Intervallen statt, nicht zu Uhrzeiten (Stufe 1 alle
+20 Minuten, bis Stufe 5 einmal täglich). Man meldet vorher an — auch für mehrere
+kommende Termine auf einmal — und sieht das Ergebnis beim nächsten Reinschauen.
+Es gibt keinen verpassbaren Termin: Anwesenheit zum Zeitpunkt ist nicht nötig,
+wer nicht da ist, verliert nichts.
 
 ## Damit die Sammlung nicht veraltet
 
@@ -216,14 +223,35 @@ public void Advance(DateTime now)
 ```
 
 Wird beim Laden und vor jeder Spieleraktion aufgerufen, arbeitet in Schritten von
-höchstens einer Stunde, damit sich Zustände nicht überholen. Je Schritt:
-abgelaufene Aufträge abschließen, Verletzungen heilen, Trächtigkeiten prüfen,
-Kondition und Stimmung fortschreiben, fällige Wettkämpfe auswerten, Kosten anteilig
-abbuchen, Materialerzeugung gutschreiben (bis zum Wochendeckel).
+höchstens einer Stunde, damit sich Zustände nicht überholen. Je Schritt: fällige
+Trächtigkeiten und Wettkampf-Anmeldungen auswerten, Kosten anteilig abbuchen,
+Materialerzeugung gutschreiben. Innerhalb dieser Stundenschritte geht jedes Pferd
+sein eigenes, feineres Tempo: seine Trainings-Warteschlange arbeitet sich in
+Minutenschritten ab, solange Zeit und Kondition reichen, und pausiert von selbst,
+sobald die Kondition für die nächste Einheit nicht mehr ausreicht.
+
+**Nicht die Uhr begrenzt das Spielen, sondern die Kondition.** Ein Pferd kann
+mehrere Trainingseinheiten hintereinander abarbeiten, bis es müde ist; Kondition
+regeneriert danach über die Zeit (Basis: vollständig in ca. vier Stunden, schneller
+mit besserer Unterbringung). Das erzeugt von allein den gewünschten Verlauf: am
+Anfang ist ein Pferd schnell erschöpft und eine erste Sitzung durchgehend
+beschäftigt, später mit vielen Pferden ist immer eines frisch. Mehr Aktivität
+bringt schnelleren Fortschritt, nicht mehr Ertrag pro Aktion.
+
+Zeitgebundene Ressourcen (Materialerzeugung) sammeln sich offline bis zu einer
+Obergrenze von sieben Tagen an (Designgrundsatz 2) — der Deckel wird einmalig gegen
+das tatsächliche Ziel von `Advance` geprüft, nicht gegen jeden Stundenschritt für
+sich, sonst würde er nie greifen.
 
 Bei langer Abwesenheit werden Schritte zusammengefasst, aber terminierte Ereignisse
 müssen in richtiger Reihenfolge auslösen. Beim Start bekommt der Spieler eine
 Zusammenfassung dessen, was seit dem letzten Besuch passiert ist.
+
+**Alterung** läuft beschleunigt gegenüber der Echtzeit (siehe
+`Zeitkonstanten.AlterungsFaktor`), damit ein Pferd rund vier bis sechs Wochen
+Echtzeit konkurrenzfähig bleibt und danach als Elterntier wertvoll wird
+(Designgrundsatz 5). Nur die Alters*anzeige* und darauf basierende Regeln sind
+davon betroffen, keine anderen Zeitabläufe.
 
 ## Phasen
 

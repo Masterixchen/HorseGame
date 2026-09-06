@@ -15,10 +15,11 @@ public static class SpielstandFabrik
         var stand = new Spielstand
         {
             ZuletztAktualisiert = jetzt,
+            Spielbeginn = jetzt,
             Zufall = zufall,
             Guthaben = StartGuthaben,
             Hofstufe = 1,
-            NaechsteMaterialproduktion = jetzt.AddDays(7),
+            NaechsteMaterialproduktion = jetzt,
             NaechsteMarktAktualisierung = jetzt.AddDays(7)
         };
 

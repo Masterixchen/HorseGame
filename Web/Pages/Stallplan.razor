@@ -1,0 +1,101 @@
+@page "/stallplan"
+@using Core
+@using Web.Speicher
+@inject SpielSitzung Sitzung
+
+<PageTitle>Stallplan</PageTitle>
+
+<h1>Stallplan</h1>
+<p class="karte-unterzeile">Weist allen einsatzbereiten Pferden auf einmal eine Vorlage zu, statt jedes einzeln zu öffnen.</p>
+
+@if (!Sitzung.Geladen)
+{
+    <p>Lädt...</p>
+}
+else
+{
+    @if (_meldung != null)
+    {
+        <p class="erfolgsmeldung">@_meldung</p>
+    }
+
+    <section class="detail-abschnitt">
+        <h2>Vorlage für alle einsatzbereiten Pferde</h2>
+        <div class="zucht-aktionen">
+            <button class="knopf-primaer" @onclick='() => VorlageAnwenden("aufbauen")'>Aufbauen</button>
+            <button class="knopf-primaer" @onclick='() => VorlageAnwenden("wettkampf")'>Auf Wettkampf vorbereiten</button>
+            <button class="knopf-sekundaer" @onclick='() => VorlageAnwenden("schonen")'>Schonen</button>
+        </div>
+        <p class="karte-unterzeile">
+            <strong>Aufbauen</strong>: füllt leere Warteschlangen mit fünf mittleren Einheiten auf dem Wert mit der größten Lücke zum Potenzial.
+            <strong>Auf Wettkampf vorbereiten</strong>: ersetzt die Warteschlange durch drei intensive Einheiten - schneller fertig, kostet mehr Kondition.
+            <strong>Schonen</strong>: leert die Warteschlange, das Pferd erholt sich nur noch.
+        </p>
+    </section>
+
+    <section class="detail-abschnitt">
+        <h2>Pferde</h2>
+        @foreach (var pferd in Sitzung.Zustand.Pferde)
+        {
+            <div class="wert-zeile-gross">
+                <span class="wert-name">@pferd.Name</span>
+                <div class="balken-hintergrund balken-gross">
+                    <div class="balken-kondition" style="width:@(Prozent(pferd.Kondition))%"></div>
+                </div>
+                <span class="wert-zahl">@Status(pferd)</span>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private string? _meldung;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Sitzung.Geladen)
+            await Sitzung.LadenOderErzeugenAsync();
+    }
+
+    private async Task VorlageAnwenden(string vorlage)
+    {
+        int betroffen = 0;
+        foreach (var pferd in Sitzung.Zustand.Pferde)
+        {
+            if (pferd.Traechtigkeit != null || !pferd.AlleMerkmaleBekannt) continue;
+
+            switch (vorlage)
+            {
+                case "aufbauen":
+                    if (pferd.Warteschlange.Count > 0) continue;
+                    var ziel = pferd.Werte.Alle().OrderByDescending(w => w.Wert.Potenzial - w.Wert.Aktuell).First().Typ;
+                    for (int i = 0; i < 5; i++) pferd.TrainingEinreihen(ziel, Intensitaet.Mittel);
+                    break;
+                case "wettkampf":
+                    pferd.WarteschlangeLeeren();
+                    var schwerpunkt = pferd.Werte.Alle().OrderByDescending(w => w.Wert.Potenzial - w.Wert.Aktuell).First().Typ;
+                    for (int i = 0; i < 3; i++) pferd.TrainingEinreihen(schwerpunkt, Intensitaet.Intensiv);
+                    break;
+                case "schonen":
+                    pferd.WarteschlangeLeeren();
+                    break;
+            }
+            betroffen++;
+        }
+
+        _meldung = $"Vorlage \"{vorlage}\" auf {betroffen} Pferd(e) angewendet.";
+        await Sitzung.SpeichernAsync();
+    }
+
+    private static string Status(Pferd pferd)
+    {
+        if (pferd.Traechtigkeit != null) return "trächtig";
+        if (!pferd.AlleMerkmaleBekannt) return "Fohlen";
+        if (pferd.LaufendesTraining != null) return $"trainiert (+{pferd.Warteschlange.Count})";
+        if (pferd.Warteschlange.Count > 0) return $"{pferd.Warteschlange.Count} wartend";
+        return "bereit";
+    }
+
+    private static string Prozent(float wert) =>
+        Math.Clamp(wert, 0, 100).ToString(System.Globalization.CultureInfo.InvariantCulture);
+}

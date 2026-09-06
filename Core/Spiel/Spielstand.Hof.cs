@@ -3,32 +3,52 @@ namespace Core;
 public partial class Spielstand
 {
     private const int HofAusbauBasiskosten = 400;
+    private const int MaterialTaktMinuten = 30;
+    private static readonly TimeSpan MaterialMaxNachholzeit = TimeSpan.FromDays(7);
 
-    /// <summary>Wöchentliche, gedeckelte Materialerzeugung des Hofes - braucht keine
-    /// Inhaltsdatenbank (Materialtypen sind ein reines Aufzählungs-Enum), läuft deshalb direkt in
-    /// Advance(DateTime). Jede Hofstufe bringt zwei zufällige Materialien pro Woche.</summary>
-    private void ProduziereWochenmaterial()
+    /// <summary>Deckelt den Rückstand auf höchstens sieben Tage, bevor die stundenweise Schleife in
+    /// Advance überhaupt beginnt (Designgrundsatz 2: zeitgebundene Ressourcen sammeln sich offline
+    /// nur bis zu einer Obergrenze von sieben Tagen an).</summary>
+    private void BegrenzeMaterialNachholzeit(DateTime jetzt)
+    {
+        var fruehesterZaehlbarerZeitpunkt = jetzt - MaterialMaxNachholzeit;
+        if (NaechsteMaterialproduktion < fruehesterZaehlbarerZeitpunkt)
+            NaechsteMaterialproduktion = fruehesterZaehlbarerZeitpunkt;
+    }
+
+    /// <summary>Alle 30 Minuten ein Materialschub, Hofstufe Stück pro Schub - braucht keine
+    /// Inhaltsdatenbank (Materialtypen sind ein reines Enum), läuft deshalb direkt in
+    /// Advance(DateTime).</summary>
+    private void ProduziereFaelligesMaterial(DateTime bis)
     {
         var typen = Enum.GetValues<MaterialTyp>();
-        int anzahl = Hofstufe * 2;
-        for (int i = 0; i < anzahl; i++)
+        while (NaechsteMaterialproduktion <= bis)
         {
-            var typ = Zufall.Waehle(typen);
-            Materialbestand[typ] = Materialbestand.GetValueOrDefault(typ) + 1;
+            for (int i = 0; i < Hofstufe; i++)
+            {
+                var typ = Zufall.Waehle(typen);
+                Materialbestand[typ] = Materialbestand.GetValueOrDefault(typ) + 1;
+            }
+            NaechsteMaterialproduktion = NaechsteMaterialproduktion.AddMinutes(MaterialTaktMinuten);
         }
     }
 
-    /// <summary>Kosten steigen mit jeder Stufe - ein größerer Hof bringt mehr Materialien und lässt
-    /// (siehe Pferd.Advance) alle Pferde etwas schneller erholen.</summary>
     public int HofAusbauKosten() => HofAusbauBasiskosten * Hofstufe;
 
-    public void HofAusbauen()
+    /// <summary>15 Minuten bis 4 Stunden, je nach Zielstufe - erste Schätzung, zum Tunen gedacht.</summary>
+    public static TimeSpan HofAusbauDauer(int zielstufe) =>
+        TimeSpan.FromMinutes(Math.Min(240, 15 + Math.Max(0, zielstufe - 2) * 25));
+
+    public void HofAusbauen(DateTime jetzt)
     {
+        if (HofAusbauFertig != null)
+            throw new InvalidOperationException("Es läuft bereits ein Ausbau.");
+
         int kosten = HofAusbauKosten();
         if (Guthaben < kosten)
             throw new InvalidOperationException("Nicht genug Guthaben für den Ausbau.");
 
         Guthaben -= kosten;
-        Hofstufe += 1;
+        HofAusbauFertig = jetzt + HofAusbauDauer(Hofstufe + 1);
     }
 }

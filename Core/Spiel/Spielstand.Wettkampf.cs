@@ -4,10 +4,11 @@ public partial class Spielstand
 {
     private const int MaxErgebnisHistorie = 50;
 
-    /// <summary>Meldet ein Pferd zum nächsten Termin einer Wettkampfklasse an. Die Klasse wird
-    /// dabei eingefroren (siehe WettkampfAnmeldung) - Advance(DateTime) braucht später keine
+    /// <summary>Meldet ein Pferd zu den nächsten anzahlTermine Terminen einer Wettkampfklasse an -
+    /// kein verpassbarer Termin, man kann auch mehrere im Voraus belegen. Die Klasse wird dabei
+    /// eingefroren (siehe WettkampfAnmeldung) - Advance(DateTime) braucht später keine
     /// Inhaltsdatenbank mehr, um die Anmeldung auszuwerten.</summary>
-    public void MeldeAn(Wettkampfklasse klasse, Pferd pferd, DateTime jetzt)
+    public void MeldeAn(Wettkampfklasse klasse, Pferd pferd, DateTime jetzt, int anzahlTermine = 1)
     {
         if (pferd.IstBeschaeftigt)
             throw new InvalidOperationException("Dieses Pferd ist gerade anderweitig beschäftigt.");
@@ -16,11 +17,13 @@ public partial class Spielstand
         if (!WettkampfRechner.DarfTeilnehmen(klasse, pferd, Ansehen, jetzt))
             throw new InvalidOperationException("Die Voraussetzungen für diese Wettkampfklasse sind nicht erfüllt.");
 
-        pferd.Anmeldung = new WettkampfAnmeldung
+        var naechsterTermin = jetzt;
+        for (int i = 0; i < anzahlTermine; i++)
         {
-            Klasse = klasse,
-            Zeitpunkt = WettkampfRechner.NaechsterZeitpunkt(klasse, jetzt)
-        };
+            naechsterTermin = WettkampfRechner.NaechsterZeitpunkt(klasse, naechsterTermin);
+            if (pferd.Anmeldungen.Any(a => a.Klasse.Id == klasse.Id && a.Zeitpunkt == naechsterTermin)) continue;
+            pferd.Anmeldungen.Add(new WettkampfAnmeldung { Klasse = klasse, Zeitpunkt = naechsterTermin });
+        }
     }
 
     private void LoeseWettkampfAus(Pferd pferd, WettkampfAnmeldung anmeldung, DateTime zeitpunkt)

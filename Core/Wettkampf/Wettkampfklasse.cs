@@ -1,14 +1,15 @@
 namespace Core;
 
 /// <summary>Eine Wettkampfklasse bündelt Disziplin (nur zur Anzeige - die Gewichte hier sind das,
-/// was tatsächlich zählt), Zulassung über Ansehen und die Preise. Findet jeden Tag zur gleichen
-/// Uhrzeit statt (siehe WettkampfRechner.NaechsterZeitpunkt).</summary>
+/// was tatsächlich zählt), Zulassung über Ansehen und die Preise. Läuft in festem Intervall statt
+/// zu einer Uhrzeit (siehe WettkampfRechner.NaechsterZeitpunkt) - kein verpassbarer Termin, man
+/// meldet sich einfach für den nächsten oder mehrere kommende an.</summary>
 public class Wettkampfklasse
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string Disziplin { get; set; } = "";
-    public int Stundenzeitpunkt { get; set; }
+    public int IntervallMinuten { get; set; }
     public int BenoetigtesAnsehen { get; set; }
 
     public float GewichtTempo { get; set; }

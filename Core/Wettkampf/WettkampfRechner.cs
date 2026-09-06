@@ -10,12 +10,15 @@ public static class WettkampfRechner
 {
     private const int AnzahlGegner = 6;
 
-    /// <summary>Der nächste Termin dieser Klasse nach dem gegebenen Zeitpunkt - jeden Tag zur
-    /// gleichen Uhrzeit.</summary>
+    /// <summary>Der nächste Termin dieser Klasse nach dem gegebenen Zeitpunkt - an ein festes
+    /// Raster ab Mitternacht ausgerichtet (z.B. alle 20 Minuten zu :00/:20/:40), damit die Termine
+    /// vorhersehbar bleiben statt bei jeder Anmeldung neu zu "ticken".</summary>
     public static DateTime NaechsterZeitpunkt(Wettkampfklasse klasse, DateTime nach)
     {
-        var kandidat = nach.Date.AddHours(klasse.Stundenzeitpunkt);
-        if (kandidat <= nach) kandidat = kandidat.AddDays(1);
+        double minutenSeitMitternacht = (nach - nach.Date).TotalMinutes;
+        double naechstesVielfaches = Math.Ceiling(minutenSeitMitternacht / klasse.IntervallMinuten) * klasse.IntervallMinuten;
+        var kandidat = nach.Date.AddMinutes(naechstesVielfaches);
+        if (kandidat <= nach) kandidat = kandidat.AddMinutes(klasse.IntervallMinuten);
         return kandidat;
     }
 

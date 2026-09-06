@@ -11,18 +11,18 @@ public static class ZuchtRechner
     private const double BasisErbchance = 0.35;
     private const double TieraufstiegChance = 0.20;
     private const int MaxMerkmaleProAchse = 3;
-    private const int MinGestationTage = 7;
-    private const int MaxGestationTage = 14;
-    private const int MinAufdeckTage = 3;
-    private const int MaxAufdeckTage = 14;
+
+    // Vier Stunden, siehe Phase-4-Auftrag - ein Zuchtstall wird das in Block 2 weiter verkürzen.
+    private static readonly TimeSpan Traechtigkeitsdauer = TimeSpan.FromHours(4);
+    private const float MinAufdeckStunden = 1f;
+    private const float MaxAufdeckStunden = 8f;
 
     /// <summary>Würfelt das Fohlen sofort und verpackt es in eine Trächtigkeit, die erst nach der
     /// Tragezeit auf die Stallliste kommt. Gewürfelt wird bei der Zucht, nicht erst bei der Geburt.</summary>
     public static Traechtigkeit StarteZucht(GameRandom zufall, Inhaltsdatenbank inhalte, Pferd mutter, Pferd vater, ZuchtEinsatz einsatz, DateTime jetzt)
     {
         var fohlen = ErzeugeFohlen(zufall, inhalte, mutter, vater, einsatz, jetzt);
-        int gestationTage = zufall.NaechsteGanzzahl(MinGestationTage, MaxGestationTage + 1);
-        return new Traechtigkeit { Beginn = jetzt, Geburtstermin = jetzt.AddDays(gestationTage), Fohlen = fohlen };
+        return new Traechtigkeit { Beginn = jetzt, Geburtstermin = jetzt + Traechtigkeitsdauer, Fohlen = fohlen };
     }
 
     public static Pferd ErzeugeFohlen(GameRandom zufall, Inhaltsdatenbank inhalte, Pferd mutter, Pferd vater, ZuchtEinsatz einsatz, DateTime geburtsdatum)
@@ -145,7 +145,7 @@ public static class ZuchtRechner
         foreach (var merkmal in fohlen.AlleMerkmale())
         {
             merkmal.Bekannt = false;
-            merkmal.Aufdeckzeitpunkt = geburtsdatum.AddDays(zufall.NaechsteGanzzahl(MinAufdeckTage, MaxAufdeckTage + 1));
+            merkmal.Aufdeckzeitpunkt = geburtsdatum.AddHours(zufall.NaechsterBereich(MinAufdeckStunden, MaxAufdeckStunden));
         }
     }
 

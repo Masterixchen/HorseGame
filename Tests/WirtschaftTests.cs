@@ -31,27 +31,49 @@ public class WirtschaftTests
     }
 
     [Fact]
-    public void Advance_ProduziertWoechentlichMaterial()
+    public void Advance_ProduziertMaterialImDreissigMinutenTakt()
     {
         var stand = NeuesSpiel(new DateTime(2026, 1, 1));
         int materialVorher = stand.Materialbestand.Values.Sum();
 
-        stand.Advance(stand.ZuletztAktualisiert.AddDays(8));
+        stand.Advance(stand.ZuletztAktualisiert.AddHours(2));
 
         int materialNachher = stand.Materialbestand.Values.Sum();
         Assert.True(materialNachher > materialVorher);
     }
 
     [Fact]
-    public void HofAusbauen_ErhoehtStufeUndKostenSteigenDanach()
+    public void Advance_HoltBeiLangerAbwesenheitHoechstensSiebenTageMaterialNach()
+    {
+        var stand = NeuesSpiel(new DateTime(2026, 1, 1));
+        stand.Advance(stand.ZuletztAktualisiert.AddDays(7));
+        int materialNachSiebenTagen = stand.Materialbestand.Values.Sum();
+
+        var zweitesSpiel = NeuesSpiel(new DateTime(2026, 1, 1));
+        zweitesSpiel.Advance(zweitesSpiel.ZuletztAktualisiert.AddDays(60));
+        int materialNachZweiMonaten = zweitesSpiel.Materialbestand.Values.Sum();
+
+        // Sechzig Tage Abwesenheit dürfen nicht mehr Material bringen als sieben Tage Nachholzeit
+        // erlauben würden (Designgrundsatz 2: Obergrenze von sieben Tagen für Offline-Ressourcen).
+        // Bei identischem Startzustand und Zufall sollte exakt dieselbe Menge nachgeholt werden.
+        Assert.Equal(materialNachSiebenTagen, materialNachZweiMonaten);
+    }
+
+    [Fact]
+    public void HofAusbauen_LaeuftEineZeitLangUndErhoehtDannDieStufe()
     {
         var stand = NeuesSpiel(new DateTime(2026, 1, 1));
         stand.Guthaben = 100_000;
         int kostenVorher = stand.HofAusbauKosten();
 
-        stand.HofAusbauen();
+        stand.HofAusbauen(stand.ZuletztAktualisiert);
+        Assert.NotNull(stand.HofAusbauFertig);
+        Assert.Equal(1, stand.Hofstufe); // noch nicht fertig
+
+        stand.Advance(stand.HofAusbauFertig!.Value.AddMinutes(1));
 
         Assert.Equal(2, stand.Hofstufe);
+        Assert.Null(stand.HofAusbauFertig);
         Assert.True(stand.HofAusbauKosten() > kostenVorher);
     }
 
@@ -61,8 +83,18 @@ public class WirtschaftTests
         var stand = NeuesSpiel(new DateTime(2026, 1, 1));
         stand.Guthaben = 0;
 
-        Assert.Throws<InvalidOperationException>(stand.HofAusbauen);
+        Assert.Throws<InvalidOperationException>(() => stand.HofAusbauen(stand.ZuletztAktualisiert));
         Assert.Equal(1, stand.Hofstufe);
+    }
+
+    [Fact]
+    public void HofAusbauen_WaehrendLaufenderAusbauLaeuft_WirftFehler()
+    {
+        var stand = NeuesSpiel(new DateTime(2026, 1, 1));
+        stand.Guthaben = 100_000;
+        stand.HofAusbauen(stand.ZuletztAktualisiert);
+
+        Assert.Throws<InvalidOperationException>(() => stand.HofAusbauen(stand.ZuletztAktualisiert));
     }
 
     [Fact]
@@ -143,15 +175,28 @@ public class WirtschaftTests
     }
 
     [Fact]
-    public void WettkampfRechner_NaechsterZeitpunkt_LiegtInDerZukunft()
+    public void WettkampfRechner_NaechsterZeitpunkt_LiegtAufFestemRasterInDerZukunft()
     {
         var klasse = _inhalte.HoleWettkampfklasse("kreis_dressur");
-        var jetzt = new DateTime(2026, 3, 10, 12, 0, 0);
+        var jetzt = new DateTime(2026, 3, 10, 12, 7, 0);
 
         var naechster = WettkampfRechner.NaechsterZeitpunkt(klasse, jetzt);
 
         Assert.True(naechster > jetzt);
-        Assert.Equal(klasse.Stundenzeitpunkt, naechster.Hour);
+        Assert.True((naechster - jetzt).TotalMinutes <= klasse.IntervallMinuten);
+        Assert.Equal(0, (int)(naechster - naechster.Date).TotalMinutes % klasse.IntervallMinuten);
+    }
+
+    [Fact]
+    public void WettkampfRechner_NaechsterZeitpunkt_IstDeterministischFuerDenselbenTermin()
+    {
+        var klasse = _inhalte.HoleWettkampfklasse("kreis_springen");
+        var jetzt = new DateTime(2026, 3, 10, 12, 7, 0);
+
+        var ersterAufruf = WettkampfRechner.NaechsterZeitpunkt(klasse, jetzt);
+        var zweiterAufruf = WettkampfRechner.NaechsterZeitpunkt(klasse, jetzt);
+
+        Assert.Equal(ersterAufruf, zweiterAufruf);
     }
 
     [Fact]
@@ -169,31 +214,60 @@ public class WirtschaftTests
     }
 
     [Fact]
-    public void MeldeAn_UndAdvance_LoestWettkampfAusUndSetztAnmeldungZurueck()
+    public void MeldeAn_UndAdvance_LoestWettkampfAusUndLeertAnmeldungen()
     {
         var stand = NeuesSpiel(new DateTime(2026, 1, 1, 6, 0, 0));
         var pferd = stand.Pferde.First(p => p.AlleMerkmaleBekannt);
         var klasse = _inhalte.HoleWettkampfklasse("kreis_dressur");
 
         stand.MeldeAn(klasse, pferd, stand.ZuletztAktualisiert);
-        Assert.NotNull(pferd.Anmeldung);
+        Assert.Single(pferd.Anmeldungen);
 
-        stand.Advance(stand.ZuletztAktualisiert.AddDays(2));
+        stand.Advance(stand.ZuletztAktualisiert.AddHours(1));
 
-        Assert.Null(pferd.Anmeldung);
+        Assert.Empty(pferd.Anmeldungen);
         Assert.Single(stand.WettkampfErgebnisse);
         Assert.InRange(stand.WettkampfErgebnisse[0].Platzierung, 1, 7);
     }
 
     [Fact]
-    public void MeldeAn_BeschaeftigtesPferd_WirftFehler()
+    public void MeldeAn_MehrereTermine_LegtMehrereAnmeldungenAn()
     {
-        var stand = NeuesSpiel(new DateTime(2026, 1, 1));
+        var stand = NeuesSpiel(new DateTime(2026, 1, 1, 6, 0, 0));
         var pferd = stand.Pferde.First(p => p.AlleMerkmaleBekannt);
-        pferd.StarteTraining(StatTyp.Tempo, stand.ZuletztAktualisiert, stand.Zufall);
         var klasse = _inhalte.HoleWettkampfklasse("kreis_dressur");
 
-        Assert.Throws<InvalidOperationException>(() => stand.MeldeAn(klasse, pferd, stand.ZuletztAktualisiert));
+        stand.MeldeAn(klasse, pferd, stand.ZuletztAktualisiert, anzahlTermine: 3);
+
+        Assert.Equal(3, pferd.Anmeldungen.Count);
+        Assert.Equal(pferd.Anmeldungen.Select(a => a.Zeitpunkt).Distinct().Count(), pferd.Anmeldungen.Count);
+    }
+
+    [Fact]
+    public void MeldeAn_TraechtigesPferd_WirftFehler()
+    {
+        var stand = NeuesSpiel(new DateTime(2026, 1, 1));
+        var mutter = stand.Pferde.First(p => p.Geschlecht == Geschlecht.Stute && p.AlleMerkmaleBekannt);
+        var vater = stand.Pferde.First(p => p.Geschlecht == Geschlecht.Hengst && p.AlleMerkmaleBekannt);
+        stand.StarteZucht(_inhalte, mutter, vater, new ZuchtEinsatz(), stand.ZuletztAktualisiert);
+        var klasse = _inhalte.HoleWettkampfklasse("kreis_dressur");
+
+        Assert.Throws<InvalidOperationException>(() => stand.MeldeAn(klasse, mutter, stand.ZuletztAktualisiert));
+    }
+
+    [Fact]
+    public void Training_BlockiertWettkampfAnmeldungNichtMehr()
+    {
+        // Kernänderung aus dem Phase-4-Auftrag: Training läuft nebenbei mit, es ist keine
+        // exklusive Beschäftigung mehr wie in den ersten Phasen.
+        var stand = NeuesSpiel(new DateTime(2026, 1, 1));
+        var pferd = stand.Pferde.First(p => p.AlleMerkmaleBekannt);
+        pferd.TrainingEinreihen(StatTyp.Tempo, Intensitaet.Intensiv);
+        var klasse = _inhalte.HoleWettkampfklasse("kreis_dressur");
+
+        stand.MeldeAn(klasse, pferd, stand.ZuletztAktualisiert);
+
+        Assert.Single(pferd.Anmeldungen);
     }
 
     [Fact]

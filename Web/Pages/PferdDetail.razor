@@ -53,13 +53,6 @@ else
             }
         }
         <div class="wert-zeile-gross">
-            <span class="wert-name">Kondition</span>
-            <div class="balken-hintergrund balken-gross">
-                <div class="balken-kondition" style="width:@(Prozent(_pferd.Kondition))%"></div>
-            </div>
-            <span class="wert-zahl">@_pferd.Kondition.ToString("F0")</span>
-        </div>
-        <div class="wert-zeile-gross">
             <span class="wert-name">Stimmung</span>
             <div class="balken-hintergrund balken-gross">
                 <div class="balken-stimmung" style="width:@(Prozent(_pferd.Stimmung))%"></div>
@@ -152,42 +145,77 @@ else
             <p>Geburt am <strong>@_pferd.Traechtigkeit.Geburtstermin.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</strong>.</p>
         </section>
     }
-    else if (_pferd.Anmeldung != null)
+
+    @if (_pferd.Anmeldungen.Count > 0)
     {
         <section class="detail-abschnitt">
-            <h2>Wettkampf-Anmeldung</h2>
-            <p>Angemeldet für <strong>@_pferd.Anmeldung.Klasse.Name</strong>, Termin @_pferd.Anmeldung.Zeitpunkt.ToLocalTime().ToString("dd.MM.yyyy HH:mm").</p>
+            <h2>Wettkampf-Anmeldungen</h2>
+            <ul class="anmeldungs-liste">
+                @foreach (var anmeldung in _pferd.Anmeldungen.OrderBy(a => a.Zeitpunkt).ToList())
+                {
+                    <li>
+                        @anmeldung.Klasse.Name - @anmeldung.Zeitpunkt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        <button class="knopf-sekundaer knopf-klein" @onclick="() => AnmeldungAbsagen(anmeldung)">absagen</button>
+                    </li>
+                }
+            </ul>
         </section>
     }
-    else if (!_pferd.AlleMerkmaleBekannt)
-    {
-        <section class="detail-abschnitt">
-            <h2>Training</h2>
-            <p>Solange nicht alle Merkmale aufgedeckt sind, ist noch kein gezieltes Training möglich.</p>
-        </section>
-    }
-    else
-    {
-        <section class="detail-abschnitt">
-            <h2>Training</h2>
-            @if (_pferd.AktivesTraining != null)
-            {
-                <p>Trainiert gerade <strong>@_pferd.AktivesTraining.Ziel</strong>, fertig am @_pferd.AktivesTraining.Ende.ToLocalTime().ToString("dd.MM.yyyy HH:mm").</p>
-            }
-            else
-            {
-                <div class="training-formular">
-                    <select @bind="_trainingsZiel">
-                        @foreach (var typ in Enum.GetValues<StatTyp>())
-                        {
-                            <option value="@typ">@typ</option>
-                        }
-                    </select>
-                    <button class="knopf-primaer" @onclick="TrainingStarten">Training starten (4-8 Std.)</button>
-                </div>
-            }
-        </section>
-    }
+
+    <section class="detail-abschnitt">
+        <h2>Training</h2>
+        <div class="wert-zeile-gross">
+            <span class="wert-name">Kondition</span>
+            <div class="balken-hintergrund balken-gross">
+                <div class="balken-kondition" style="width:@(Prozent(_pferd.Kondition))%"></div>
+            </div>
+            <span class="wert-zahl">@_pferd.Kondition.ToString("F0")</span>
+        </div>
+
+        @if (_pferd.LaufendesTraining != null)
+        {
+            <p>Trainiert gerade <strong>@_pferd.LaufendesTraining.Ziel</strong> (@_pferd.LaufendesTraining.Intensitaet), fertig um @_pferd.LaufendesTraining.Ende.ToLocalTime().ToString("HH:mm").</p>
+        }
+
+        @if (_pferd.Warteschlange.Count > 0)
+        {
+            <ol class="warteschlange-liste">
+                @for (int i = 0; i < _pferd.Warteschlange.Count; i++)
+                {
+                    var index = i;
+                    var auftrag = _pferd.Warteschlange[i];
+                    <li>
+                        @auftrag.Ziel (@auftrag.Intensitaet)
+                        <button class="knopf-sekundaer knopf-klein" @onclick="() => AusWarteschlangeEntfernen(index)">entfernen</button>
+                    </li>
+                }
+            </ol>
+            <button class="knopf-sekundaer" @onclick="WarteschlangeLeeren">Warteschlange leeren</button>
+        }
+
+        @if (!_pferd.AlleMerkmaleBekannt)
+        {
+            <p class="fohlen-hinweis">Solange nicht alle Merkmale aufgedeckt sind, ist noch kein gezieltes Training möglich.</p>
+        }
+        else
+        {
+            <div class="training-formular">
+                <select @bind="_trainingsZiel">
+                    @foreach (var typ in Enum.GetValues<StatTyp>())
+                    {
+                        <option value="@typ">@typ</option>
+                    }
+                </select>
+                <select @bind="_intensitaet">
+                    @foreach (var i in Enum.GetValues<Intensitaet>())
+                    {
+                        <option value="@i">@i - @IntensitaetsRegeln.Dauer(i).TotalMinutes min, @IntensitaetsRegeln.Konditionskosten(i) Kondition</option>
+                    }
+                </select>
+                <button class="knopf-primaer" @onclick="ZurWarteschlangeHinzufuegen">Einreihen</button>
+            </div>
+        }
+    </section>
 }
 
 @code {
@@ -195,6 +223,7 @@ else
 
     private Pferd? _pferd;
     private StatTyp _trainingsZiel = StatTyp.Tempo;
+    private Intensitaet _intensitaet = Intensitaet.Mittel;
     private readonly Dictionary<AusruestungsSlot, string> _ausgewaehlteAusruestung =
         Enum.GetValues<AusruestungsSlot>().ToDictionary(s => s, _ => "");
 
@@ -206,10 +235,31 @@ else
         _pferd = Sitzung.Zustand.Pferde.FirstOrDefault(p => p.Id == Id);
     }
 
-    private async Task TrainingStarten()
+    private async Task ZurWarteschlangeHinzufuegen()
     {
         if (_pferd == null) return;
-        _pferd.StarteTraining(_trainingsZiel, DateTime.UtcNow, Sitzung.Zustand.Zufall);
+        _pferd.TrainingEinreihen(_trainingsZiel, _intensitaet);
+        await Sitzung.SpeichernAsync();
+    }
+
+    private async Task AusWarteschlangeEntfernen(int index)
+    {
+        if (_pferd == null) return;
+        _pferd.Warteschlange.RemoveAt(index);
+        await Sitzung.SpeichernAsync();
+    }
+
+    private async Task WarteschlangeLeeren()
+    {
+        if (_pferd == null) return;
+        _pferd.WarteschlangeLeeren();
+        await Sitzung.SpeichernAsync();
+    }
+
+    private async Task AnmeldungAbsagen(WettkampfAnmeldung anmeldung)
+    {
+        if (_pferd == null) return;
+        _pferd.Anmeldungen.Remove(anmeldung);
         await Sitzung.SpeichernAsync();
     }
 

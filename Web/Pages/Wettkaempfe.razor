@@ -44,6 +44,14 @@ else
                     }
                 </select>
             </label>
+            <label>
+                Anzahl kommender Termine
+                <select @bind="_anzahlTermine">
+                    <option value="1">1</option>
+                    <option value="3">3</option>
+                    <option value="5">5</option>
+                </select>
+            </label>
         }
     </section>
 
@@ -58,7 +66,7 @@ else
                     <span class="merkmal-name">@klasse.Name</span>
                 </div>
                 <div class="merkmal-beschreibung">
-                    täglich @klasse.Stundenzeitpunkt:00 Uhr · benötigt @klasse.BenoetigtesAnsehen Ansehen
+                    @IntervallText(klasse) · benötigt @klasse.BenoetigtesAnsehen Ansehen
                     @if (klasse.MinAlter is int minAlter) { <text> · ab @minAlter Jahren</text> }
                     · Preisgeld @klasse.Preisgeld1 / @klasse.Preisgeld2 / @klasse.Preisgeld3, Antrittsgeld @klasse.Antrittsgeld
                 </div>
@@ -99,6 +107,7 @@ else
 
 @code {
     private string _pferdId = "";
+    private int _anzahlTermine = 1;
     private string? _meldung;
     private string? _fehler;
 
@@ -106,6 +115,13 @@ else
         .Where(p => !p.IstBeschaeftigt && p.AlleMerkmaleBekannt).ToList();
 
     private Pferd? AusgewaehltesPferd => Guid.TryParse(_pferdId, out var id) ? VerfuegbarePferde.FirstOrDefault(p => p.Id == id) : null;
+
+    private static string IntervallText(Wettkampfklasse klasse) => klasse.IntervallMinuten switch
+    {
+        >= 1440 => "täglich",
+        >= 60 => $"alle {klasse.IntervallMinuten / 60} Std.",
+        _ => $"alle {klasse.IntervallMinuten} Min."
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -128,8 +144,9 @@ else
 
         try
         {
-            Sitzung.Zustand.MeldeAn(klasse, pferd, DateTime.UtcNow);
-            _meldung = $"{pferd.Name} für {klasse.Name} angemeldet, nächster Termin {pferd.Anmeldung!.Zeitpunkt.ToLocalTime():dd.MM. HH:mm}.";
+            Sitzung.Zustand.MeldeAn(klasse, pferd, DateTime.UtcNow, _anzahlTermine);
+            var naechster = pferd.Anmeldungen.Where(a => a.Klasse.Id == klasse.Id).Min(a => a.Zeitpunkt);
+            _meldung = $"{pferd.Name} für {klasse.Name} angemeldet ({_anzahlTermine} Termin(e)), nächster {naechster.ToLocalTime():dd.MM. HH:mm}.";
             _pferdId = "";
             await Sitzung.SpeichernAsync();
         }

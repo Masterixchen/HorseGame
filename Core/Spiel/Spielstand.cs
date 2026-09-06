@@ -10,9 +10,15 @@ public partial class Spielstand
     public GameRandom Zufall { get; set; } = new();
     public List<Pferd> Pferde { get; set; } = new();
 
+    // Für die Früh-Freischaltung neuer Systeme in der Oberfläche (Markt, Ausrüstung, Hof, Zucht,
+    // Materialien schalten sich in den ersten Spielminuten nacheinander frei) - reine Anzeigesache,
+    // keine Spielregel hängt daran.
+    public DateTime Spielbeginn { get; set; }
+
     public int Guthaben { get; set; }
     public int Ansehen { get; set; }
     public int Hofstufe { get; set; } = 1;
+    public DateTime? HofAusbauFertig { get; set; }
 
     // Getrennte Termine, weil nur die Materialproduktion ohne Inhaltsdatenbank auskommt und darum
     // in Advance(DateTime) laufen darf - der Marktnachschub braucht Rassen-Daten und wird darum
@@ -28,10 +34,16 @@ public partial class Spielstand
     /// <summary>Rechnet die Zeit seit dem letzten Besuch in Schritten von höchstens einer Stunde
     /// nach, damit sich fällige Ereignisse nicht überholen (siehe Zeitmodell in der
     /// Projektanweisung). Wird beim Laden und vor jeder Spieleraktion aufgerufen - es gibt keine
-    /// tickende Schleife im Hintergrund.</summary>
+    /// tickende Schleife im Hintergrund. Die feinere Minutentaktung von Training und Wettkämpfen
+    /// steckt in Pferd.Advance selbst, das innerhalb jedes Stundenschritts sein eigenes Tempo geht.</summary>
     public void Advance(DateTime jetzt)
     {
         if (jetzt <= ZuletztAktualisiert) return;
+
+        // Deckel einmalig gegen das tatsächliche Ziel prüfen, nicht gegen jeden Stundenschritt -
+        // die äußere Schleife läuft ohnehin stundenweise durch, ein Deckel je Teilschritt würde
+        // nie greifen, weil der Rückstand zu jedem Teilschritt-Zeitpunkt nie sieben Tage beträgt.
+        BegrenzeMaterialNachholzeit(jetzt);
 
         var schrittGroesse = TimeSpan.FromHours(1);
         var zeitpunkt = ZuletztAktualisiert;
@@ -40,13 +52,13 @@ public partial class Spielstand
             var naechsterZeitpunkt = zeitpunkt + schrittGroesse;
             if (naechsterZeitpunkt > jetzt) naechsterZeitpunkt = jetzt;
 
-            // Neugeborene und ausgewertete Wettkämpfe erst nach der Schleife anhängen bzw.
-            // verarbeiten - während der Iteration die Pferdeliste selbst zu verändern würde eine
-            // Exception auslösen.
             // Hofstufe wirkt wie eine bessere Unterbringung auf alle Pferde gleich; dazu kommt die
             // Decken-Ausrüstung des einzelnen Pferdes (Erholung und Stimmung zusammengefasst).
             float hofBonus = (Hofstufe - 1) * 15f;
 
+            // Neugeborene und ausgewertete Wettkämpfe erst nach der Schleife anhängen bzw.
+            // verarbeiten - während der Iteration die Pferdeliste selbst zu verändern würde eine
+            // Exception auslösen.
             var neugeborene = new List<Pferd>();
             foreach (var pferd in Pferde)
             {
@@ -60,21 +72,22 @@ public partial class Spielstand
                     pferd.Traechtigkeit = null;
                 }
 
-                if (pferd.Anmeldung != null && pferd.Anmeldung.Zeitpunkt <= naechsterZeitpunkt)
+                foreach (var anmeldung in pferd.Anmeldungen.Where(a => a.Zeitpunkt <= naechsterZeitpunkt).ToList())
                 {
-                    LoeseWettkampfAus(pferd, pferd.Anmeldung, naechsterZeitpunkt);
-                    pferd.Anmeldung = null;
+                    LoeseWettkampfAus(pferd, anmeldung, anmeldung.Zeitpunkt);
+                    pferd.Anmeldungen.Remove(anmeldung);
                 }
             }
             Pferde.AddRange(neugeborene);
 
-            BucheUnterhaltskosten(zeitpunkt, naechsterZeitpunkt);
-
-            while (NaechsteMaterialproduktion != default && NaechsteMaterialproduktion <= naechsterZeitpunkt)
+            if (HofAusbauFertig != null && HofAusbauFertig <= naechsterZeitpunkt)
             {
-                ProduziereWochenmaterial();
-                NaechsteMaterialproduktion = NaechsteMaterialproduktion.AddDays(7);
+                Hofstufe += 1;
+                HofAusbauFertig = null;
             }
+
+            BucheUnterhaltskosten(zeitpunkt, naechsterZeitpunkt);
+            ProduziereFaelligesMaterial(naechsterZeitpunkt);
 
             zeitpunkt = naechsterZeitpunkt;
         }

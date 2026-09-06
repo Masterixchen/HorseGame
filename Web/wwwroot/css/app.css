@@ -255,6 +255,10 @@ select {
     margin-bottom: 0.6rem;
 }
 
+.kondition-zeile {
+    margin-bottom: 0.5rem;
+}
+
 .werte-liste {
     display: flex;
     flex-direction: column;
@@ -525,6 +529,23 @@ select {
 }
 
 /* ----- Markt ----- */
+
+.knopf-klein {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.warteschlange-liste, .anmeldungs-liste {
+    padding-left: 1.2rem;
+    margin: 0.5rem 0;
+}
+
+.warteschlange-liste li, .anmeldungs-liste li {
+    margin-bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
 
 .ausruestungs-karte {
     background: var(--farbe-flaeche);

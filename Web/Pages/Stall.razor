@@ -33,6 +33,13 @@ else
                 </div>
                 <div class="karte-unterzeile">@rasse.Name · @pferd.Geschlecht · @pferd.Farbe</div>
 
+                <div class="wert-zeile kondition-zeile">
+                    <span class="wert-name">Kondition</span>
+                    <div class="balken-hintergrund">
+                        <div class="balken-kondition" style="width:@(Prozent(pferd.Kondition, 100))%"></div>
+                    </div>
+                </div>
+
                 @if (!pferd.AlleMerkmaleBekannt)
                 {
                     <p class="fohlen-hinweis">🌱 Fohlen - Merkmale decken sich nach und nach auf</p>
@@ -56,15 +63,15 @@ else
                 <div class="karte-fuss">
                     @if (pferd.Traechtigkeit != null)
                     {
-                        <span class="training-status">🐴 trächtig, Geburt am @pferd.Traechtigkeit.Geburtstermin.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                        <span class="training-status">🐴 trächtig, Geburt am @pferd.Traechtigkeit.Geburtstermin.ToLocalTime().ToString("dd.MM. HH:mm")</span>
                     }
-                    else if (pferd.AktivesTraining != null)
+                    else if (pferd.LaufendesTraining != null)
                     {
-                        <span class="training-status">🏋 Training bis @pferd.AktivesTraining.Ende.ToLocalTime().ToString("dd.MM. HH:mm")</span>
+                        <span class="training-status">🏋 trainiert bis @pferd.LaufendesTraining.Ende.ToLocalTime().ToString("HH:mm")@(pferd.Warteschlange.Count > 0 ? $" (+{pferd.Warteschlange.Count} in Warteschlange)" : "")</span>
                     }
-                    else if (pferd.Anmeldung != null)
+                    else if (pferd.Warteschlange.Count > 0)
                     {
-                        <span class="training-status">🏆 @pferd.Anmeldung.Klasse.Name am @pferd.Anmeldung.Zeitpunkt.ToLocalTime().ToString("dd.MM. HH:mm")</span>
+                        <span class="training-status">⏳ @pferd.Warteschlange.Count Einheiten warten auf Kondition</span>
                     }
                     else if (!pferd.AlleMerkmaleBekannt)
                     {
@@ -73,6 +80,10 @@ else
                     else
                     {
                         <span class="training-status training-frei">bereit für Training</span>
+                    }
+                    @if (pferd.Anmeldungen.Count > 0)
+                    {
+                        <span class="training-status">🏆 @pferd.Anmeldungen.Count Termin(e), nächster @pferd.Anmeldungen.Min(a => a.Zeitpunkt).ToLocalTime().ToString("dd.MM. HH:mm")</span>
                     }
                 </div>
             </div>

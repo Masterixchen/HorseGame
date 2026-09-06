@@ -2,7 +2,7 @@ namespace Core;
 
 /// <summary>Ein einzelnes Pferd - das Herzstück des Spiels. Rasse, Merkmale und Werte stehen bei
 /// der Geburt fest und ändern sich nie durch Zufall (Designgrundsatz 3). Nur Training, Ausrüstung
-/// und Pflege wirken auf ein lebendes Pferd - hier ist erstmal nur Training umgesetzt.</summary>
+/// und Pflege wirken auf ein lebendes Pferd.</summary>
 public class Pferd
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -22,7 +22,11 @@ public class Pferd
     public float Kondition { get; set; } = 100f;
     public float Stimmung { get; set; } = 100f;
 
-    public Training? AktivesTraining { get; set; }
+    // Nicht die Uhr begrenzt das Training, sondern die Kondition (siehe Phase-4-Auftrag). Die
+    // Warteschlange arbeitet sich in Advance von selbst ab, auch während das Spiel geschlossen
+    // ist, und pausiert von selbst, wenn die Kondition für die nächste Einheit nicht mehr reicht.
+    public List<Trainingsauftrag> Warteschlange { get; set; } = new();
+    public Training? LaufendesTraining { get; set; }
 
     // Nur bei Stuten belegt, solange eine Zucht läuft. Wird von Spielstand.Advance ausgewertet,
     // weil die Geburt ein neues Pferd zur Stallliste hinzufügt - das kann eine einzelne Pferd-
@@ -34,21 +38,26 @@ public class Pferd
     public Guid? MutterId { get; set; }
     public Guid? VaterId { get; set; }
 
-    public WettkampfAnmeldung? Anmeldung { get; set; }
+    // Mehrere gleichzeitig möglich - man darf für mehrere kommende Termine im Voraus anmelden.
+    public List<WettkampfAnmeldung> Anmeldungen { get; set; } = new();
 
     // Nur die Slots mit belegtem Eintrag sind vorhanden. Wert ist die Id der Ausruestung-Instanz,
     // nicht der Definition - dieselbe Definition kann mehrfach besessen werden.
     public Dictionary<AusruestungsSlot, Guid> Ausgeruestet { get; set; } = new();
 
-    public int AlterInJahren(DateTime bezugsdatum) => (int)((bezugsdatum - Geburtsdatum).TotalDays / 365.25);
+    // Beschleunigt gegenüber der Echtzeit (siehe Zeitkonstanten.AlterungsFaktor) - nur die
+    // Alters*anzeige* und darauf basierende Regeln (Wettkampf-Altersfaktor, Alters-Einschränkungen)
+    // sind betroffen, keine anderen Zeitabläufe.
+    public int AlterInJahren(DateTime bezugsdatum) =>
+        (int)((bezugsdatum - Geburtsdatum).TotalDays / 365.25 * Zeitkonstanten.AlterungsFaktor);
 
     /// <summary>Solange noch nicht alle Merkmale aufgedeckt sind, eignet sich das Pferd nicht als
     /// Zuchtpartner - eine ehrliche Vorschau braucht bekannte Ausgangswerte.</summary>
     public bool AlleMerkmaleBekannt => AlleMerkmale().All(m => m.Bekannt);
 
-    /// <summary>Training, Trächtigkeit und Wettkampf-Anmeldung schließen sich gegenseitig aus -
-    /// ein Pferd kann immer nur eine dieser Sachen gleichzeitig tun.</summary>
-    public bool IstBeschaeftigt => AktivesTraining != null || Traechtigkeit != null || Anmeldung != null;
+    /// <summary>Training und Wettkampf-Anmeldungen laufen nebenbei mit - nur eine Trächtigkeit
+    /// blockiert eine neue Zucht oder Wettkampfteilnahme.</summary>
+    public bool IstBeschaeftigt => Traechtigkeit != null;
 
     /// <summary>Alle Merkmale zusammen - praktisch für Anzeige und für die Modifikator-Summe.</summary>
     public IEnumerable<MerkmalsInstanz> AlleMerkmale()
@@ -71,22 +80,14 @@ public class Pferd
         return summe;
     }
 
-    public void StarteTraining(StatTyp ziel, DateTime jetzt, GameRandom zufall)
-    {
-        if (AktivesTraining != null)
-            throw new InvalidOperationException("Es läuft bereits ein Training für dieses Pferd.");
+    public void TrainingEinreihen(StatTyp ziel, Intensitaet intensitaet) =>
+        Warteschlange.Add(new Trainingsauftrag { Ziel = ziel, Intensitaet = intensitaet });
 
-        // Trainingsgeschwindigkeit aus Suffixen verkürzt die Dauer, mindestens aber eine Stunde.
-        float geschwindigkeitsBonus = ModifikatorSumme(Merkmalsattribut.Trainingsgeschwindigkeit) / 100f;
-        float basisStunden = zufall.NaechsterBereich(4f, 8f);
-        float stunden = MathF.Max(1f, basisStunden / (1f + geschwindigkeitsBonus));
+    public void WarteschlangeLeeren() => Warteschlange.Clear();
 
-        AktivesTraining = new Training { Ziel = ziel, Start = jetzt, Ende = jetzt.AddHours(stunden) };
-    }
-
-    /// <summary>Rechnet den Zeitraum [von, bis) für dieses Pferd durch: fälliges Training
-    /// abschließen, sonst Kondition und Stimmung fortschreiben. Wird von Spielstand.Advance in
-    /// Schritten von höchstens einer Stunde aufgerufen, damit sich nichts überholt.
+    /// <summary>Rechnet den Zeitraum [von, bis) für dieses Pferd durch: Merkmale aufdecken und die
+    /// Trainings-Warteschlange abarbeiten, solange Zeit und Kondition reichen. Wird von
+    /// Spielstand.Advance in Schritten von höchstens einer Stunde aufgerufen.
     /// zusatzErholungProzent bündelt externe Boni (Hofstufe/Unterbringung, Decken-Ausrüstung), die
     /// dieses Pferd selbst nicht kennt - Spielstand.Advance rechnet sie vorher zusammen.</summary>
     public void Advance(DateTime von, DateTime bis, float zusatzErholungProzent = 0f)
@@ -94,20 +95,73 @@ public class Pferd
         foreach (var merkmal in AlleMerkmale())
             merkmal.PruefeAufdeckung(bis);
 
-        bool trainierteWaehrendSchritt = AktivesTraining != null;
+        float traitBonus = ModifikatorSumme(Merkmalsattribut.Erholung);
+        float regenProStunde = MathF.Max(1f, BasisKonditionRegenProStunde * (1f + (traitBonus + zusatzErholungProzent) / 100f));
 
-        if (AktivesTraining != null && AktivesTraining.Ende <= bis)
+        BearbeiteWarteschlange(von, bis, regenProStunde);
+    }
+
+    // Volle Regeneration in ca. vier Stunden ohne weitere Boni (siehe Phase-4-Auftrag).
+    private const float BasisKonditionRegenProStunde = 100f / 4f;
+
+    private void BearbeiteWarteschlange(DateTime von, DateTime bis, float regenProStunde)
+    {
+        var zeitpunkt = von;
+
+        while (true)
         {
-            SchliesseTrainingAb(AktivesTraining);
-            AktivesTraining = null;
+            if (LaufendesTraining != null)
+            {
+                if (LaufendesTraining.Ende > bis) return;
+                SchliesseTrainingAb(LaufendesTraining);
+                zeitpunkt = LaufendesTraining.Ende;
+                LaufendesTraining = null;
+                continue;
+            }
+
+            if (zeitpunkt >= bis) return;
+
+            if (Warteschlange.Count == 0)
+            {
+                RegeneriereKondition(zeitpunkt, bis, regenProStunde);
+                return;
+            }
+
+            float kosten = IntensitaetsRegeln.Konditionskosten(Warteschlange[0].Intensitaet);
+            if (Kondition < kosten)
+            {
+                // Nicht genug Kondition - abwarten, bis genug regeneriert ist oder das Fenster endet.
+                double stundenBisBereit = (kosten - Kondition) / regenProStunde;
+                var bereitAb = zeitpunkt.AddHours(stundenBisBereit);
+                if (bereitAb >= bis)
+                {
+                    RegeneriereKondition(zeitpunkt, bis, regenProStunde);
+                    return;
+                }
+                RegeneriereKondition(zeitpunkt, bereitAb, regenProStunde);
+                zeitpunkt = bereitAb;
+                continue;
+            }
+
+            var auftrag = Warteschlange[0];
+            Warteschlange.RemoveAt(0);
+            Kondition -= kosten;
+            LaufendesTraining = new Training
+            {
+                Ziel = auftrag.Ziel,
+                Intensitaet = auftrag.Intensitaet,
+                Start = zeitpunkt,
+                Ende = zeitpunkt + IntensitaetsRegeln.Dauer(auftrag.Intensitaet)
+            };
+            // Schleife läuft weiter - oben wird sofort geprüft, ob die Einheit noch in dieses
+            // Zeitfenster passt oder erst beim nächsten Advance-Aufruf fertig wird.
         }
+    }
 
-        if (trainierteWaehrendSchritt) return;
-
-        // Erholung ohne Training: Kondition und Stimmung steigen langsam Richtung 100, beschleunigt
-        // durch das Suffix-Attribut "Erholung" sowie Hofstufe und Decken-Ausrüstung von außen.
-        float erholungsBonus = 1f + (ModifikatorSumme(Merkmalsattribut.Erholung) + zusatzErholungProzent) / 100f;
-        float zuwachs = (float)(bis - von).TotalHours * 2f * erholungsBonus;
+    private void RegeneriereKondition(DateTime von, DateTime bis, float regenProStunde)
+    {
+        float stunden = (float)(bis - von).TotalHours;
+        float zuwachs = stunden * regenProStunde;
         Kondition = MathF.Min(100f, Kondition + zuwachs);
         Stimmung = MathF.Min(100f, Stimmung + zuwachs * 0.5f);
     }
@@ -117,11 +171,6 @@ public class Pferd
         var stat = Werte.Hole(training.Ziel);
         float luecke = stat.Potenzial - stat.Aktuell;
         if (luecke > 0f)
-        {
-            // Abnehmender Ertrag: je näher am Potenzial, desto kleiner der Schritt.
-            stat.Aktuell = MathF.Min(stat.Potenzial, stat.Aktuell + luecke * 0.15f);
-        }
-
-        Kondition = MathF.Max(0f, Kondition - 8f);
+            stat.Aktuell = MathF.Min(stat.Potenzial, stat.Aktuell + luecke * IntensitaetsRegeln.ErtragsAnteil(training.Intensitaet));
     }
 }
