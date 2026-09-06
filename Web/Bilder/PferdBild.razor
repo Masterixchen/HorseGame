@@ -1,0 +1,26 @@
+@using Core
+@using Web.Bilder
+
+@* Reines HTML-onerror statt Blazor-Event: läuft komplett im Browser ohne Round-Trip zum
+   .NET-Code, damit der Bildwechsel sofort passiert. Die verbleibenden Kandidaten stecken in
+   data-fallback (durch | getrennt); der letzte Kandidat ist ein data-URI und kann nie fehlschlagen,
+   also bricht die Kette dort garantiert ab, ohne die Konsole mit Fehlern zuzumüllen. *@
+<img src="@_kandidaten[0]"
+     data-fallback="@string.Join('|', _kandidaten.Skip(1))"
+     onerror="var el=this; var r=(el.dataset.fallback||'').split('|').filter(Boolean); if(r.length){el.src=r.shift(); el.dataset.fallback=r.join('|');} else {el.onerror=null;}"
+     alt="@Alt" class="@CssClass" loading="lazy" />
+
+@code {
+    [Parameter, EditorRequired] public Pferd Pferd { get; set; } = null!;
+    [Parameter, EditorRequired] public Rasse Rasse { get; set; } = null!;
+    [Parameter] public string? Alt { get; set; }
+    [Parameter] public string? CssClass { get; set; }
+
+    private IReadOnlyList<string> _kandidaten = Array.Empty<string>();
+
+    protected override void OnParametersSet()
+    {
+        _kandidaten = HorseArt.Kandidaten(Pferd, Rasse);
+        Alt ??= Pferd.Name;
+    }
+}

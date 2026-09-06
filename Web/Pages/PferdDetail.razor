@@ -22,6 +22,7 @@ else
     <a href="/" class="zurueck-link">← zurück zum Stall</a>
 
     <div class="detail-kopf seltenheit-@_pferd.Seltenheit.ToString().ToLowerInvariant()">
+        <PferdBild Pferd="_pferd" Rasse="rasse" CssClass="pferde-bild-gross" />
         <h1>@_pferd.Name</h1>
         <div class="detail-unterzeile">
             @rasse.Name · @_pferd.Geschlecht · @_pferd.Farbe · @_pferd.AlterInJahren(DateTime.UtcNow) Jahre

@@ -236,6 +236,26 @@ select {
 .seltenheit-elite { border-left-color: var(--farbe-elite); }
 .seltenheit-einzigartig { border-left-color: var(--farbe-einzigartig); }
 
+.pferde-bild {
+    width: 100%;
+    aspect-ratio: 5 / 6;
+    object-fit: cover;
+    border-radius: 0.4rem;
+    background: var(--farbe-hintergrund);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.pferde-bild-gross {
+    width: 160px;
+    aspect-ratio: 5 / 6;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    background: var(--farbe-hintergrund);
+    float: right;
+    margin: 0 0 0.5rem 1rem;
+}
+
 .karte-kopf {
     display: flex;
     justify-content: space-between;
@@ -344,8 +364,9 @@ select {
 
 .detail-kopf {
     border-left: 6px solid var(--farbe-gewoehnlich);
-    padding: 0.4rem 0 0.4rem 1rem;
+    padding: 0.4rem 1rem 0.4rem 1rem;
     margin-bottom: 1.5rem;
+    display: flow-root; /* fasst das schwebende Pferdebild ein, sonst ragt es in den nächsten Abschnitt */
 }
 
 .detail-badges {

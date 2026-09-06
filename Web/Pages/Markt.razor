@@ -37,6 +37,7 @@ else
             {
                 var rasse = Inhalte.HoleRasse(pferd.RasseId);
                 <div class="pferde-karte seltenheit-@pferd.Seltenheit.ToString().ToLowerInvariant()">
+                    <PferdBild Pferd="pferd" Rasse="rasse" CssClass="pferde-bild" />
                     <div class="karte-kopf">
                         <span class="pferde-name">@pferd.Name</span>
                         <span class="seltenheit-abzeichen">@pferd.Seltenheit</span>
@@ -55,6 +56,7 @@ else
             {
                 var rasse = Inhalte.HoleRasse(pferd.RasseId);
                 <div class="pferde-karte seltenheit-@pferd.Seltenheit.ToString().ToLowerInvariant()">
+                    <PferdBild Pferd="pferd" Rasse="rasse" CssClass="pferde-bild" />
                     <div class="karte-kopf">
                         <span class="pferde-name">@pferd.Name</span>
                         <span class="seltenheit-abzeichen">@pferd.Seltenheit</span>

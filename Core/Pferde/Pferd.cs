@@ -14,6 +14,11 @@ public class Pferd
     public Seltenheit Seltenheit { get; set; }
     public int Blutlinienstufe { get; set; }
 
+    // Nur bei einzigartigen Pferden belegt (Seltenheit.Einzigartig) - identifiziert, welches
+    // benannte Pferd das ist, z.B. für die Bildauflösung (Web/Bilder/HorseArt). Einzigartige
+    // Pferde selbst sind noch nicht als Inhalt umgesetzt, das Feld liegt schon bereit.
+    public string? EinzigartigerSchluessel { get; set; }
+
     public MerkmalsInstanz ImplizitesMerkmal { get; set; } = new();
     public List<MerkmalsInstanz> Praefixe { get; set; } = new();
     public List<MerkmalsInstanz> Suffixe { get; set; } = new();

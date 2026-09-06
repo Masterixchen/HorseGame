@@ -17,3 +17,9 @@ Console.WriteLine(new string('-', 60));
 Console.WriteLine();
 
 Wirtschaftsbericht.Drucken(inhalte);
+
+Console.WriteLine();
+Console.WriteLine(new string('-', 60));
+Console.WriteLine();
+
+Bilddateien.Drucken(inhalte);
