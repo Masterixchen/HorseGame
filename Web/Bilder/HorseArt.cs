@@ -48,8 +48,12 @@ public static class HorseArt
 
     private static string SilhouetteAlsDatenUrl(string farbe)
     {
-        string hex = FarbeZuHex.GetValueOrDefault(farbe, NeutralerTon);
+        string hex = FarbeAlsHex(farbe);
         string svg = $"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120'><path fill='{hex}' d='{SilhouettenPfad}'/></svg>";
         return "data:image/svg+xml," + Uri.EscapeDataString(svg);
     }
+
+    /// <summary>Öffentlich, damit auch andere Ansichten (z.B. die Weide-Übersicht auf der
+    /// Hof-Seite) dieselbe Fellfarbe-zu-Ton-Zuordnung nutzen können.</summary>
+    public static string FarbeAlsHex(string farbe) => FarbeZuHex.GetValueOrDefault(farbe, NeutralerTon);
 }

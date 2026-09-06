@@ -46,6 +46,6 @@ public partial class Spielstand
             throw new InvalidOperationException("Nicht genug Guthaben für den Ausbau.");
 
         Guthaben -= kosten;
-        LaufenderAusbau = new AusbauAuftrag { Gebaeude = gebaeude, Fertig = jetzt + GebaeudeRegeln.AusbauDauer(GebaeudeStufe(gebaeude) + 1) };
+        LaufenderAusbau = new AusbauAuftrag { Gebaeude = gebaeude, Beginn = jetzt, Fertig = jetzt + GebaeudeRegeln.AusbauDauer(GebaeudeStufe(gebaeude) + 1) };
     }
 }

@@ -27,6 +27,7 @@ else
         {
             var rasse = Inhalte.HoleRasse(pferd.RasseId);
             <div class="pferde-karte seltenheit-@pferd.Seltenheit.ToString().ToLowerInvariant()" @onclick="() => OeffnePferd(pferd.Id)">
+                <Lichtpunkte Seltenheit="pferd.Seltenheit" />
                 <PferdBild Pferd="pferd" Rasse="rasse" CssClass="pferde-bild" />
                 <div class="karte-kopf">
                     <span class="pferde-name">@pferd.Name</span>
@@ -64,11 +65,15 @@ else
                 <div class="karte-fuss">
                     @if (pferd.Traechtigkeit != null)
                     {
-                        <span class="training-status">🐴 trächtig, Geburt am @pferd.Traechtigkeit.Geburtstermin.ToLocalTime().ToString("dd.MM. HH:mm")</span>
+                        <Fortschrittsbalken Start="pferd.Traechtigkeit.Beginn" Ende="pferd.Traechtigkeit.Geburtstermin" Beschriftung="🐴" />
                     }
                     else if (pferd.LaufendesTraining != null)
                     {
-                        <span class="training-status">🏋 trainiert bis @pferd.LaufendesTraining.Ende.ToLocalTime().ToString("HH:mm")@(pferd.Warteschlange.Count > 0 ? $" (+{pferd.Warteschlange.Count} in Warteschlange)" : "")</span>
+                        <Fortschrittsbalken Start="pferd.LaufendesTraining.Start" Ende="pferd.LaufendesTraining.Ende" Beschriftung="🏋" />
+                        @if (pferd.Warteschlange.Count > 0)
+                        {
+                            <span class="training-status">+@pferd.Warteschlange.Count in Warteschlange</span>
+                        }
                     }
                     else if (pferd.Warteschlange.Count > 0)
                     {
@@ -84,7 +89,8 @@ else
                     }
                     @if (pferd.Anmeldungen.Count > 0)
                     {
-                        <span class="training-status">🏆 @pferd.Anmeldungen.Count Termin(e), nächster @pferd.Anmeldungen.Min(a => a.Zeitpunkt).ToLocalTime().ToString("dd.MM. HH:mm")</span>
+                        var naechste = pferd.Anmeldungen.OrderBy(a => a.Zeitpunkt).First();
+                        <Fortschrittsbalken Start="naechste.Zeitpunkt.AddMinutes(-naechste.Klasse.IntervallMinuten)" Ende="naechste.Zeitpunkt" Beschriftung="🏆" />
                     }
                 </div>
             </div>

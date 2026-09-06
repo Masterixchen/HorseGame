@@ -102,6 +102,99 @@ code {
     color: #c02d76;
 }
 
+/* ----- Ambiente-Hintergrund (siehe Web/Ambiente/Szene.razor) ----- */
+
+.ambiente-szene {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0.4; /* Stimmung geben, aber die Karten davor klar im Vordergrund lassen */
+}
+
+.ambiente-himmel {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--himmel-oben), var(--himmel-unten));
+    transition: background 25s ease;
+}
+
+.ambiente-wolke {
+    position: absolute;
+    top: 10%;
+    width: 16rem;
+    height: 3.5rem;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    filter: blur(14px);
+    animation: wolken-drift 150s linear infinite;
+}
+
+.ambiente-wolke-2 {
+    top: 20%;
+    width: 10rem;
+    height: 2.5rem;
+    opacity: 0.7;
+    animation-duration: 200s;
+    animation-delay: -70s;
+}
+
+.ambiente-huegel {
+    position: absolute;
+    bottom: 5%;
+    left: 0;
+    right: 0;
+    height: 12%;
+    background: linear-gradient(180deg, transparent, #7a9b6e 75%);
+}
+
+.ambiente-zaun {
+    position: absolute;
+    bottom: 5%;
+    left: 0;
+    right: 0;
+    height: 1.5%;
+    background-image: repeating-linear-gradient(90deg, #7a5c3e 0 3px, transparent 3px 36px);
+}
+
+.ambiente-gras {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 5.5%;
+    background: #5c7a4a;
+    clip-path: polygon(0 30%, 5% 0, 10% 30%, 15% 5%, 20% 30%, 25% 0, 30% 30%, 35% 10%,
+        40% 30%, 45% 0, 50% 30%, 55% 5%, 60% 30%, 65% 0, 70% 30%, 75% 10%,
+        80% 30%, 85% 0, 90% 30%, 95% 5%, 100% 30%, 100% 100%, 0 100%);
+}
+
+.wetter-nebel .ambiente-himmel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.wetter-regen .ambiente-himmel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 14px);
+    animation: regen-fall 0.6s linear infinite;
+}
+
+@keyframes wolken-drift {
+    from { transform: translateX(-18rem); }
+    to { transform: translateX(110vw); }
+}
+
+@keyframes regen-fall {
+    from { background-position: 0 0; }
+    to { background-position: -20px 40px; }
+}
+
 /* ===== Pferdegestüt - eigenes Styling, kein Bootstrap ===== */
 
 :root {
@@ -217,13 +310,14 @@ select {
 }
 
 .pferde-karte {
+    position: relative;
+    overflow: hidden;
     background: var(--farbe-flaeche);
     border: 1px solid var(--farbe-rand);
-    border-left: 6px solid var(--farbe-gewoehnlich);
     border-radius: 0.6rem;
     padding: 0.9rem 1rem;
     cursor: pointer;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .pferde-karte:hover {
@@ -231,10 +325,87 @@ select {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 
-.seltenheit-solide { border-left-color: var(--farbe-solide); }
-.seltenheit-selten { border-left-color: var(--farbe-selten); }
-.seltenheit-elite { border-left-color: var(--farbe-elite); }
-.seltenheit-einzigartig { border-left-color: var(--farbe-einzigartig); }
+/* Seltenheit auf einen Blick (siehe Phase-4-Auftrag, Block 4): die Sättigung steigt mit der
+   Stufe, gewöhnliche Pferde sollen bewusst matter wirken, damit die guten strahlen - billiger
+   und wirkungsvoller als jede zusätzliche Animation. */
+.seltenheit-gewoehnlich {
+    border: 1px solid var(--farbe-rand);
+    filter: saturate(0.65);
+}
+
+.seltenheit-solide {
+    border: 2px solid var(--farbe-solide);
+    filter: saturate(0.95);
+}
+
+.seltenheit-selten {
+    border: 2px solid var(--farbe-selten);
+    background: linear-gradient(160deg, var(--farbe-flaeche) 45%, rgba(47, 111, 176, 0.12));
+    filter: saturate(1.1);
+}
+
+.seltenheit-elite {
+    border: 2px solid var(--farbe-elite);
+    background: linear-gradient(160deg, var(--farbe-flaeche) 40%, rgba(163, 69, 47, 0.16));
+    filter: saturate(1.2);
+}
+
+.seltenheit-elite::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 40%, rgba(255, 255, 255, 0.4) 50%, transparent 60%);
+    background-size: 250% 250%;
+    background-position: 200% 0;
+    animation: schimmer 7s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.seltenheit-einzigartig {
+    border: 3px solid var(--farbe-einzigartig);
+    background: linear-gradient(160deg, #2b2416, #4a3a1a);
+    box-shadow: 0 0 18px rgba(184, 134, 11, 0.4);
+    filter: saturate(1.3);
+}
+
+.seltenheit-einzigartig .pferde-name,
+.seltenheit-einzigartig .wert-name,
+.seltenheit-einzigartig .karte-unterzeile,
+.seltenheit-einzigartig .training-status,
+.seltenheit-einzigartig .seltenheit-abzeichen,
+.seltenheit-einzigartig h1,
+.seltenheit-einzigartig .detail-unterzeile,
+.seltenheit-einzigartig .blutlinie-abzeichen {
+    color: #f3e6c8;
+}
+
+.lichtpunkt {
+    position: absolute;
+    bottom: 8%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ffe9b0;
+    box-shadow: 0 0 6px 2px rgba(255, 220, 130, 0.7);
+    animation: aufsteigen 5s ease-in infinite;
+    pointer-events: none;
+}
+
+.lichtpunkt-1 { left: 20%; animation-delay: 0s; }
+.lichtpunkt-2 { left: 55%; animation-delay: 1.8s; }
+.lichtpunkt-3 { left: 78%; animation-delay: 3.4s; }
+
+@keyframes schimmer {
+    0%, 100% { background-position: 200% 0; }
+    55% { background-position: -60% 0; }
+}
+
+@keyframes aufsteigen {
+    0% { transform: translateY(0); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 0.5; }
+    100% { transform: translateY(-90px); opacity: 0; }
+}
 
 .pferde-bild {
     width: 100%;
@@ -363,8 +534,9 @@ select {
 }
 
 .detail-kopf {
-    border-left: 6px solid var(--farbe-gewoehnlich);
-    padding: 0.4rem 1rem 0.4rem 1rem;
+    position: relative;
+    overflow: hidden;
+    padding: 0.6rem 1rem;
     margin-bottom: 1.5rem;
     display: flow-root; /* fasst das schwebende Pferdebild ein, sonst ragt es in den nächsten Abschnitt */
 }
@@ -573,6 +745,68 @@ select {
     gap: 0.6rem;
 }
 
+/* ----- Rückmeldung auf Aktionen ----- */
+
+.wert-zuwachs {
+    color: var(--farbe-solide);
+    font-weight: 700;
+    font-size: 0.8rem;
+    animation: schwebe-hoch 1.8s ease-out forwards;
+}
+
+@keyframes schwebe-hoch {
+    0% { opacity: 0; transform: translateY(4px); }
+    15% { opacity: 1; transform: translateY(0); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-14px); }
+}
+
+/* ----- Fortschrittsbalken ----- */
+
+.fortschritt {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    margin: 0.3rem 0;
+}
+
+.fortschritt-beschriftung {
+    color: var(--farbe-text-schwach);
+    white-space: nowrap;
+}
+
+.fortschritt-hintergrund {
+    position: relative;
+    flex: 1;
+    height: 0.6rem;
+    background: var(--farbe-hintergrund);
+    border: 1px solid var(--farbe-rand);
+    border-radius: 0.3rem;
+    overflow: visible;
+}
+
+.fortschritt-fuellung {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--farbe-akzent);
+    border-radius: 0.3rem;
+    transition: width 1s linear;
+}
+
+.fortschritt-pferdchen {
+    position: absolute;
+    top: -0.75rem;
+    font-size: 0.9rem;
+    transition: left 1s linear;
+    transform: translateX(-50%) scaleX(-1);
+}
+
+.fortschritt-text {
+    color: var(--farbe-text-schwach);
+    white-space: nowrap;
+}
+
 /* ----- Hof ----- */
 
 .gebaeude-raster {
@@ -591,6 +825,35 @@ select {
     gap: 0.4rem;
 }
 
+.weide-flaeche {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.8rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(180deg, #eef3e2, #dce8c8);
+    min-height: 2.6rem;
+    margin-bottom: 0.6rem;
+}
+
+.weide-stall {
+    background: linear-gradient(180deg, #ece3d6, #ddd0ba);
+}
+
+.weide-pferd {
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50% 50% 50% 20%;
+    display: inline-block;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.weide-pferd:hover {
+    transform: scale(1.3);
+}
+
 .gebaeude-baustelle {
     border-color: var(--farbe-elite);
     border-style: dashed;
@@ -605,4 +868,17 @@ select {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
+}
+
+/* ----- Bewegung respektiert prefers-reduced-motion (siehe Phase-4-Auftrag, Block 4) -----
+   Umgebungsanimationen (Wolken, Schimmer, Lichtpunkte, Regen) werden abgeschaltet,
+   Rückmeldungsanimationen (Fortschrittsbalken, Zuwachs-Zahlen) auf sofortige
+   Zustandswechsel reduziert - beides über dieselbe Regel, da eine auf ~0 verkürzte
+   Animation/Transition genau das bewirkt. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

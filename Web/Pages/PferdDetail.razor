@@ -1,6 +1,7 @@
 @page "/pferd/{Id:guid}"
 @using Core
 @using Web.Speicher
+@implements IDisposable
 @inject SpielSitzung Sitzung
 @inject Inhaltsdatenbank Inhalte
 @inject NavigationManager Navigation
@@ -22,6 +23,7 @@ else
     <a href="/" class="zurueck-link">← zurück zum Stall</a>
 
     <div class="detail-kopf seltenheit-@_pferd.Seltenheit.ToString().ToLowerInvariant()">
+        <Lichtpunkte Seltenheit="_pferd.Seltenheit" />
         <PferdBild Pferd="_pferd" Rasse="rasse" CssClass="pferde-bild-gross" />
         <h1>@_pferd.Name</h1>
         <div class="detail-unterzeile">
@@ -50,6 +52,10 @@ else
                         <div class="balken-aktuell" style="width:@(Prozent(stat.Aktuell))%"></div>
                     </div>
                     <span class="wert-zahl">@stat.Aktuell.ToString("F1") / @stat.Potenzial.ToString("F1")</span>
+                    @if (_zuwaechse.TryGetValue(typ, out float zuwachs) && zuwachs > 0)
+                    {
+                        <span class="wert-zuwachs" @key="_zuwachsRevision.GetValueOrDefault(typ)">+@zuwachs.ToString("0.0")</span>
+                    }
                 </div>
             }
         }
@@ -71,8 +77,9 @@ else
                 <div class="merkmal-zeile merkmal-verborgen">
                     <div class="merkmal-kopf">
                         <span class="merkmal-art">???</span>
-                        <span class="merkmal-name">deckt sich auf am @merkmal.Aufdeckzeitpunkt!.Value.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                        <span class="merkmal-name">deckt sich bald auf</span>
                     </div>
+                    <Fortschrittsbalken Start="_pferd.Geburtsdatum" Ende="merkmal.Aufdeckzeitpunkt!.Value" />
                 </div>
             }
             else
@@ -143,7 +150,7 @@ else
     {
         <section class="detail-abschnitt">
             <h2>Trächtigkeit</h2>
-            <p>Geburt am <strong>@_pferd.Traechtigkeit.Geburtstermin.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</strong>.</p>
+            <Fortschrittsbalken Start="_pferd.Traechtigkeit.Beginn" Ende="_pferd.Traechtigkeit.Geburtstermin" />
         </section>
     }
 
@@ -155,7 +162,8 @@ else
                 @foreach (var anmeldung in _pferd.Anmeldungen.OrderBy(a => a.Zeitpunkt).ToList())
                 {
                     <li>
-                        @anmeldung.Klasse.Name - @anmeldung.Zeitpunkt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        <span>@anmeldung.Klasse.Name</span>
+                        <Fortschrittsbalken Start="anmeldung.Zeitpunkt.AddMinutes(-anmeldung.Klasse.IntervallMinuten)" Ende="anmeldung.Zeitpunkt" />
                         <button class="knopf-sekundaer knopf-klein" @onclick="() => AnmeldungAbsagen(anmeldung)">absagen</button>
                     </li>
                 }
@@ -175,7 +183,8 @@ else
 
         @if (_pferd.LaufendesTraining != null)
         {
-            <p>Trainiert gerade <strong>@_pferd.LaufendesTraining.Ziel</strong> (@_pferd.LaufendesTraining.Intensitaet), fertig um @_pferd.LaufendesTraining.Ende.ToLocalTime().ToString("HH:mm").</p>
+            <p>Trainiert gerade <strong>@_pferd.LaufendesTraining.Ziel</strong> (@_pferd.LaufendesTraining.Intensitaet)</p>
+            <Fortschrittsbalken Start="_pferd.LaufendesTraining.Start" Ende="_pferd.LaufendesTraining.Ende" />
         }
 
         @if (_pferd.Warteschlange.Count > 0)
@@ -228,13 +237,47 @@ else
     private readonly Dictionary<AusruestungsSlot, string> _ausgewaehlteAusruestung =
         Enum.GetValues<AusruestungsSlot>().ToDictionary(s => s, _ => "");
 
+    // Für die schwebende "+2 Tempo"-Rückmeldung: Werte vor der letzten Änderung merken, damit sich
+    // ein Anstieg erkennen lässt, sobald Sitzung.ZustandGeaendert feuert (z.B. nach einem
+    // abgeschlossenen Training).
+    private readonly Dictionary<StatTyp, float> _vorherigeWerte = new();
+    private readonly Dictionary<StatTyp, float> _zuwaechse = new();
+    private readonly Dictionary<StatTyp, int> _zuwachsRevision = new();
+
     protected override async Task OnInitializedAsync()
     {
         if (!Sitzung.Geladen)
             await Sitzung.LadenOderErzeugenAsync();
 
         _pferd = Sitzung.Zustand.Pferde.FirstOrDefault(p => p.Id == Id);
+        MerkeAktuelleWerte();
+        Sitzung.ZustandGeaendert += PruefeAufZuwachs;
     }
+
+    private void MerkeAktuelleWerte()
+    {
+        if (_pferd == null) return;
+        foreach (var (typ, stat) in _pferd.Werte.Alle())
+            _vorherigeWerte[typ] = stat.Aktuell;
+    }
+
+    private void PruefeAufZuwachs()
+    {
+        if (_pferd == null) return;
+        foreach (var (typ, stat) in _pferd.Werte.Alle())
+        {
+            float vorher = _vorherigeWerte.GetValueOrDefault(typ, stat.Aktuell);
+            if (stat.Aktuell > vorher + 0.01f)
+            {
+                _zuwaechse[typ] = stat.Aktuell - vorher;
+                _zuwachsRevision[typ] = _zuwachsRevision.GetValueOrDefault(typ) + 1;
+            }
+            _vorherigeWerte[typ] = stat.Aktuell;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Sitzung.ZustandGeaendert -= PruefeAufZuwachs;
 
     private async Task ZurWarteschlangeHinzufuegen()
     {

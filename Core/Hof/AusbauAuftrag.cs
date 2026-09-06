@@ -5,5 +5,6 @@ namespace Core;
 public class AusbauAuftrag
 {
     public Gebaeude Gebaeude { get; set; }
+    public DateTime Beginn { get; set; }
     public DateTime Fertig { get; set; }
 }

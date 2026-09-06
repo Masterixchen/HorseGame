@@ -1,0 +1,14 @@
+@using Core
+
+@* Wenige langsam aufsteigende Lichtpunkte, nur für einzigartige Pferde (siehe Phase-4-Auftrag,
+   Block 4, Seltenheitstabelle). Reine Deko, respektiert prefers-reduced-motion global in app.css. *@
+@if (Seltenheit == Seltenheit.Einzigartig)
+{
+    <span class="lichtpunkt lichtpunkt-1"></span>
+    <span class="lichtpunkt lichtpunkt-2"></span>
+    <span class="lichtpunkt lichtpunkt-3"></span>
+}
+
+@code {
+    [Parameter] public Seltenheit Seltenheit { get; set; }
+}

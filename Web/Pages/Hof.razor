@@ -26,6 +26,30 @@ else
         <p class="fehlermeldung">@_fehler</p>
     }
 
+    <section class="detail-abschnitt">
+        <h2>Weide</h2>
+        <div class="weide-flaeche">
+            @foreach (var pferd in AufDerWeide)
+            {
+                <span class="weide-pferd" style="background:@HorseArt.FarbeAlsHex(pferd.Farbe)" title="@pferd.Name"></span>
+            }
+            @if (AufDerWeide.Count == 0)
+            {
+                <span class="karte-unterzeile">Gerade ist niemand draußen.</span>
+            }
+        </div>
+        @if (ImStall.Count > 0)
+        {
+            <p class="karte-unterzeile">Im Stall beschäftigt:</p>
+            <div class="weide-flaeche weide-stall">
+                @foreach (var pferd in ImStall)
+                {
+                    <span class="weide-pferd" style="background:@HorseArt.FarbeAlsHex(pferd.Farbe)" title="@pferd.Name"></span>
+                }
+            </div>
+        }
+    </section>
+
     <div class="gebaeude-raster">
         @foreach (var gebaeude in Enum.GetValues<Gebaeude>())
         {
@@ -39,7 +63,8 @@ else
                 <div class="karte-unterzeile">@Beschreibung(gebaeude, stufe)</div>
                 @if (baustelle)
                 {
-                    <p class="fohlen-hinweis">🚧 im Bau, fertig um @Sitzung.Zustand.LaufenderAusbau!.Fertig.ToLocalTime().ToString("HH:mm")</p>
+                    <p class="fohlen-hinweis">🚧 im Bau</p>
+                    <Fortschrittsbalken Start="Sitzung.Zustand.LaufenderAusbau!.Beginn" Ende="Sitzung.Zustand.LaufenderAusbau!.Fertig" />
                 }
                 else
                 {
@@ -57,6 +82,15 @@ else
 @code {
     private string? _meldung;
     private string? _fehler;
+
+    // Nur eine Anzeigesache (siehe Phase-4-Auftrag, Block 4: "stärkster einzelner Hebel gegen den
+    // Eindruck, das Spiel sei tot") - bewusst eine eigene, einfachere Definition als
+    // Pferd.IstBeschaeftigt, die auch laufendes Training und wachsende Fohlen mit einschließt.
+    private static bool IstImStall(Pferd pferd) =>
+        pferd.Traechtigkeit != null || pferd.LaufendesTraining != null || !pferd.AlleMerkmaleBekannt;
+
+    private List<Pferd> AufDerWeide => Sitzung.Zustand.Pferde.Where(p => !IstImStall(p)).ToList();
+    private List<Pferd> ImStall => Sitzung.Zustand.Pferde.Where(IstImStall).ToList();
 
     protected override async Task OnInitializedAsync()
     {

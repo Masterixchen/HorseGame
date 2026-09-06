@@ -1,0 +1,55 @@
+@implements IDisposable
+
+@* Geschichteter Hintergrund hinter der Oberfläche (siehe Phase-4-Auftrag, Block 4). Bewusst
+   gedämpft (siehe .ambiente-szene in app.css: niedrige Deckkraft) statt eine dominante
+   Illustration - die Karten sollen der Blickfang bleiben, die Szene nur Stimmung geben.
+   Tageszeit kommt aus der echten Uhr, Wetter ist rein optisch und rührt den Spielzufall nicht
+   an, sonst würde daraus eine Anwesenheits-Mechanik. *@
+<div class="ambiente-szene @_wetterKlasse" style="@Stilvariablen()">
+    <div class="ambiente-himmel"></div>
+    <div class="ambiente-wolke ambiente-wolke-1"></div>
+    <div class="ambiente-wolke ambiente-wolke-2"></div>
+    <div class="ambiente-huegel"></div>
+    <div class="ambiente-zaun"></div>
+    <div class="ambiente-gras"></div>
+</div>
+
+@code {
+    private System.Threading.Timer? _timer;
+    private readonly string _wetterKlasse = WuerfleWetter();
+
+    protected override void OnInitialized()
+    {
+        // Reicht, um über Stundengrenzen und einen Tageszeitwechsel während einer langen Sitzung
+        // hinweg aktuell zu bleiben - für eine Stimmungsfarbe muss das nicht sekundengenau sein.
+        _timer = new System.Threading.Timer(_ => InvokeAsync(StateHasChanged), null, 60_000, 60_000);
+    }
+
+    private static string WuerfleWetter()
+    {
+        // Bewusst als if-Kette statt Relations-Pattern (">= x") geschrieben - der Razor-Parser in
+        // .razor-Dateien verwechselt ein führendes "<"/">=" in einem @code-Block leicht mit dem
+        // Beginn eines HTML-Tags.
+        double wert = Random.Shared.NextDouble();
+        if (wert < 0.7) return "wetter-klar";
+        if (wert < 0.88) return "wetter-nebel";
+        return "wetter-regen";
+    }
+
+    private static string Stilvariablen()
+    {
+        var (oben, unten) = Tagesfarben(DateTime.Now.Hour);
+        return $"--himmel-oben:{oben};--himmel-unten:{unten};";
+    }
+
+    private static (string Oben, string Unten) Tagesfarben(int stunde)
+    {
+        if (stunde >= 22 || stunde < 5) return ("#0d1b2a", "#1b263b");
+        if (stunde < 7) return ("#f4a261", "#ffe8d6");
+        if (stunde < 17) return ("#8ecae6", "#e8f4f8");
+        if (stunde < 20) return ("#f4845f", "#6a4c93");
+        return ("#3a3a5c", "#1b263b");
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

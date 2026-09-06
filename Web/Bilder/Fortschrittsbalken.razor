@@ -1,0 +1,51 @@
+@implements IDisposable
+
+@* Läuft mit einem Sekundentakt und einem CSS-Übergang auf Breite/Position, damit auch Vorgänge
+   unter einer Minute sichtbar durchlaufen statt zu springen (siehe Phase-4-Auftrag, Block 4:
+   "Fortschritt zeigen statt nennen"). *@
+<div class="fortschritt">
+    @if (!string.IsNullOrEmpty(Beschriftung))
+    {
+        <span class="fortschritt-beschriftung">@Beschriftung</span>
+    }
+    <div class="fortschritt-hintergrund">
+        <div class="fortschritt-fuellung" style="width:@ProzentText()%"></div>
+        <span class="fortschritt-pferdchen" style="left:@PferdchenPositionText()%">🐴</span>
+    </div>
+    <span class="fortschritt-text">@Restzeittext()</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public DateTime Start { get; set; }
+    [Parameter, EditorRequired] public DateTime Ende { get; set; }
+    [Parameter] public string? Beschriftung { get; set; }
+
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        _timer = new System.Threading.Timer(_ => InvokeAsync(StateHasChanged), null, 1000, 1000);
+    }
+
+    private double Prozent()
+    {
+        double gesamt = (Ende - Start).TotalSeconds;
+        double anteil = gesamt <= 0 ? 100 : (DateTime.UtcNow - Start).TotalSeconds / gesamt * 100.0;
+        return Math.Clamp(anteil, 0, 100);
+    }
+
+    // Invariant formatieren: CSS versteht kein Komma als Dezimaltrennzeichen.
+    private string ProzentText() => Prozent().ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private string PferdchenPositionText() => Math.Min(Prozent(), 95).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private string Restzeittext()
+    {
+        var rest = Ende - DateTime.UtcNow;
+        if (rest <= TimeSpan.Zero) return "fertig";
+        if (rest.TotalHours >= 1) return $"noch {(int)rest.TotalHours} Std. {rest.Minutes} Min.";
+        if (rest.TotalMinutes >= 1) return $"noch {(int)rest.TotalMinutes} Min.";
+        return $"noch {Math.Max(1, (int)rest.TotalSeconds)} Sek.";
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}
