@@ -5,6 +5,7 @@ namespace Tests;
 public class ZuchtTests
 {
     private readonly Inhaltsdatenbank _inhalte = new();
+    private readonly Dictionary<Gebaeude, int> _gebaeudestufen = Enum.GetValues<Gebaeude>().ToDictionary(g => g, _ => 1);
 
     private (Pferd mutter, Pferd vater) ErzeugeEltern(GameRandom zufall)
     {
@@ -23,7 +24,7 @@ public class ZuchtTests
 
         for (int i = 0; i < 500; i++)
         {
-            var fohlen = ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, einsatz, DateTime.UtcNow);
+            var fohlen = ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, einsatz, _gebaeudestufen, DateTime.UtcNow);
             Assert.True(fohlen.Praefixe.Count <= 3);
             Assert.True(fohlen.Suffixe.Count <= 3);
             Assert.Equal(SeltenheitRegeln.AusMerkmalsanzahl(fohlen.Praefixe.Count, fohlen.Suffixe.Count), fohlen.Seltenheit);
@@ -35,7 +36,7 @@ public class ZuchtTests
     {
         var zufall = new GameRandom(101);
         var (mutter, vater) = ErzeugeEltern(zufall);
-        var fohlen = ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, new ZuchtEinsatz(), DateTime.UtcNow);
+        var fohlen = ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, new ZuchtEinsatz(), _gebaeudestufen, DateTime.UtcNow);
 
         Assert.All(fohlen.AlleMerkmale(), m => Assert.False(m.Bekannt));
         Assert.All(fohlen.AlleMerkmale(), m => Assert.NotNull(m.Aufdeckzeitpunkt));
@@ -54,7 +55,7 @@ public class ZuchtTests
         mutter.Werte = vater.Werte = new StatBlock();
         var einsatz = new ZuchtEinsatz { Ahnentafel = true };
 
-        var fohlen = ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, einsatz, DateTime.UtcNow);
+        var fohlen = ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, einsatz, _gebaeudestufen, DateTime.UtcNow);
 
         Assert.True(fohlen.Praefixe.Count >= 1);
         Assert.True(fohlen.Suffixe.Count >= 1);
@@ -67,7 +68,7 @@ public class ZuchtTests
         var (mutter, vater) = ErzeugeEltern(zufall);
         var einsatz = new ZuchtEinsatz { SpezialistenMerkmalId = "windlaeufer" };
 
-        var fohlen = ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, einsatz, DateTime.UtcNow);
+        var fohlen = ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, einsatz, _gebaeudestufen, DateTime.UtcNow);
 
         var windlaeufer = fohlen.Praefixe.FirstOrDefault(p => p.DefinitionId == "windlaeufer");
         Assert.NotNull(windlaeufer);
@@ -145,7 +146,7 @@ public class ZuchtTests
         var zufall = new GameRandom(600);
         var (mutter, vater) = ErzeugeEltern(zufall);
 
-        var ergebnis = ZuchtVorschau.Berechne(_inhalte, mutter, vater, new ZuchtEinsatz(), stichproben: 500);
+        var ergebnis = ZuchtVorschau.Berechne(_inhalte, mutter, vater, new ZuchtEinsatz(), _gebaeudestufen, stichproben: 500);
 
         double summe = ergebnis.SeltenheitsChancen.Values.Sum();
         Assert.InRange(summe, 0.99, 1.01);
@@ -159,7 +160,7 @@ public class ZuchtTests
         var (mutter, vater) = ErzeugeEltern(zufall);
         ulong zustandVorher = zufall.Zustand;
 
-        ZuchtVorschau.Berechne(_inhalte, mutter, vater, new ZuchtEinsatz(), stichproben: 500);
+        ZuchtVorschau.Berechne(_inhalte, mutter, vater, new ZuchtEinsatz(), _gebaeudestufen, stichproben: 500);
 
         Assert.Equal(zustandVorher, zufall.Zustand);
     }
@@ -179,7 +180,7 @@ public class ZuchtTests
         for (int generation = 0; generation < 5; generation++)
         {
             var kandidaten = Enumerable.Range(0, 8)
-                .Select(_ => ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, new ZuchtEinsatz(), DateTime.UtcNow))
+                .Select(_ => ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, new ZuchtEinsatz(), _gebaeudestufen, DateTime.UtcNow))
                 .OrderByDescending(f => f.Werte.Tempo.Potenzial)
                 .ToList();
 
@@ -195,5 +196,55 @@ public class ZuchtTests
             marktSumme += PferdeGenerator.Erzeuge(zufall, _inhalte, rasse, DateTime.UtcNow).Werte.Tempo.Potenzial;
 
         Assert.True(zuchtDurchschnitt > marktSumme / marktAnzahl);
+    }
+
+    [Fact]
+    public void Zuchtstall_BegrenztDieBlutlinienstufeAufDenGebaeudeDeckel()
+    {
+        var zufall = new GameRandom(900);
+        var rasse = _inhalte.HoleRasse("warmblut");
+        // Sehr hohe Eltern-Blutlinie, aber ein Zuchtstall auf Stufe 1 (Deckel laut GebaeudeRegeln: 27).
+        var mutter = new Pferd { RasseId = rasse.Id, Geschlecht = Geschlecht.Stute, Blutlinienstufe = 200, Werte = new StatBlock() };
+        var vater = new Pferd { RasseId = rasse.Id, Geschlecht = Geschlecht.Hengst, Blutlinienstufe = 200, Werte = new StatBlock() };
+        var niedrigerZuchtstall = new Dictionary<Gebaeude, int> { [Gebaeude.Zuchtstall] = 1 };
+
+        for (int i = 0; i < 50; i++)
+        {
+            var fohlen = ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, new ZuchtEinsatz(), niedrigerZuchtstall, DateTime.UtcNow);
+            Assert.True(fohlen.Blutlinienstufe <= GebaeudeRegeln.MaxBlutlinienstufe(1));
+        }
+    }
+
+    [Fact]
+    public void Zuchtstall_HoehereStufeErlaubtHoehereBlutlinienstufe()
+    {
+        var zufall = new GameRandom(901);
+        var rasse = _inhalte.HoleRasse("warmblut");
+        var mutter = new Pferd { RasseId = rasse.Id, Geschlecht = Geschlecht.Stute, Blutlinienstufe = 200, Werte = new StatBlock() };
+        var vater = new Pferd { RasseId = rasse.Id, Geschlecht = Geschlecht.Hengst, Blutlinienstufe = 200, Werte = new StatBlock() };
+        var hoherZuchtstall = new Dictionary<Gebaeude, int> { [Gebaeude.Zuchtstall] = 10 };
+
+        var fohlen = ZuchtRechner.ErzeugeFohlen(zufall, _inhalte, mutter, vater, new ZuchtEinsatz(), hoherZuchtstall, DateTime.UtcNow);
+
+        Assert.True(fohlen.Blutlinienstufe > GebaeudeRegeln.MaxBlutlinienstufe(1));
+    }
+
+    [Fact]
+    public void StarteZucht_DeckstationBegrenztGleichzeitigeTraechtigkeiten()
+    {
+        var zufall = new GameRandom(902);
+        var (mutter, vater) = ErzeugeEltern(zufall);
+        var (mutter2, vater2) = ErzeugeEltern(zufall);
+        var stand = new Spielstand
+        {
+            Zufall = zufall,
+            Pferde = { mutter, vater, mutter2, vater2 },
+            Gebaeudestufen = new Dictionary<Gebaeude, int> { [Gebaeude.Deckstation] = 1 }
+        };
+
+        stand.StarteZucht(_inhalte, mutter, vater, new ZuchtEinsatz(), DateTime.UtcNow);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            stand.StarteZucht(_inhalte, mutter2, vater2, new ZuchtEinsatz(), DateTime.UtcNow));
     }
 }

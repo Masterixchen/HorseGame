@@ -16,7 +16,7 @@ public class WirtschaftTests
         Assert.True(stand.Guthaben > 0);
         Assert.NotEmpty(stand.Pferde);
         Assert.NotEmpty(stand.MarktPferde);
-        Assert.Equal(1, stand.Hofstufe);
+        Assert.All(Enum.GetValues<Gebaeude>(), g => Assert.Equal(1, stand.GebaeudeStufe(g)));
     }
 
     [Fact]
@@ -60,21 +60,22 @@ public class WirtschaftTests
     }
 
     [Fact]
-    public void HofAusbauen_LaeuftEineZeitLangUndErhoehtDannDieStufe()
+    public void HofAusbauen_LaeuftEineZeitLangUndErhoehtDannDieStufeDesGewaehltenGebaeudes()
     {
         var stand = NeuesSpiel(new DateTime(2026, 1, 1));
         stand.Guthaben = 100_000;
-        int kostenVorher = stand.HofAusbauKosten();
+        int kostenVorher = stand.HofAusbauKosten(Gebaeude.Zuchtstall);
 
-        stand.HofAusbauen(stand.ZuletztAktualisiert);
-        Assert.NotNull(stand.HofAusbauFertig);
-        Assert.Equal(1, stand.Hofstufe); // noch nicht fertig
+        stand.HofAusbauen(Gebaeude.Zuchtstall, stand.ZuletztAktualisiert);
+        Assert.NotNull(stand.LaufenderAusbau);
+        Assert.Equal(1, stand.GebaeudeStufe(Gebaeude.Zuchtstall)); // noch nicht fertig
+        Assert.Equal(1, stand.GebaeudeStufe(Gebaeude.Weide)); // andere Gebäude unberührt
 
-        stand.Advance(stand.HofAusbauFertig!.Value.AddMinutes(1));
+        stand.Advance(stand.LaufenderAusbau!.Fertig.AddMinutes(1));
 
-        Assert.Equal(2, stand.Hofstufe);
-        Assert.Null(stand.HofAusbauFertig);
-        Assert.True(stand.HofAusbauKosten() > kostenVorher);
+        Assert.Equal(2, stand.GebaeudeStufe(Gebaeude.Zuchtstall));
+        Assert.Null(stand.LaufenderAusbau);
+        Assert.True(stand.HofAusbauKosten(Gebaeude.Zuchtstall) > kostenVorher);
     }
 
     [Fact]
@@ -83,18 +84,18 @@ public class WirtschaftTests
         var stand = NeuesSpiel(new DateTime(2026, 1, 1));
         stand.Guthaben = 0;
 
-        Assert.Throws<InvalidOperationException>(() => stand.HofAusbauen(stand.ZuletztAktualisiert));
-        Assert.Equal(1, stand.Hofstufe);
+        Assert.Throws<InvalidOperationException>(() => stand.HofAusbauen(Gebaeude.Zuchtstall, stand.ZuletztAktualisiert));
+        Assert.Equal(1, stand.GebaeudeStufe(Gebaeude.Zuchtstall));
     }
 
     [Fact]
-    public void HofAusbauen_WaehrendLaufenderAusbauLaeuft_WirftFehler()
+    public void HofAusbauen_WaehrendLaufenderAusbauLaeuft_WirftFehlerAuchFuerAnderesGebaeude()
     {
         var stand = NeuesSpiel(new DateTime(2026, 1, 1));
         stand.Guthaben = 100_000;
-        stand.HofAusbauen(stand.ZuletztAktualisiert);
+        stand.HofAusbauen(Gebaeude.Zuchtstall, stand.ZuletztAktualisiert);
 
-        Assert.Throws<InvalidOperationException>(() => stand.HofAusbauen(stand.ZuletztAktualisiert));
+        Assert.Throws<InvalidOperationException>(() => stand.HofAusbauen(Gebaeude.Weide, stand.ZuletztAktualisiert));
     }
 
     [Fact]

@@ -185,6 +185,11 @@ button, .knopf-primaer, .knopf-sekundaer {
     border: 1px solid var(--farbe-rand);
 }
 
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .knopf-primaer {
     background: var(--farbe-akzent);
     color: white;
@@ -545,6 +550,29 @@ select {
     display: flex;
     align-items: center;
     gap: 0.6rem;
+}
+
+/* ----- Hof ----- */
+
+.gebaeude-raster {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.gebaeude-karte {
+    background: var(--farbe-flaeche);
+    border: 1px solid var(--farbe-rand);
+    border-radius: 0.6rem;
+    padding: 0.9rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.gebaeude-baustelle {
+    border-color: var(--farbe-elite);
+    border-style: dashed;
 }
 
 .ausruestungs-karte {

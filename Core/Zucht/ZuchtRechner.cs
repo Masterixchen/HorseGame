@@ -4,7 +4,11 @@ namespace Core;
 /// wird ein Fohlen gewürfelt. Diese Klasse ist absichtlich die EINZIGE Stelle, die das tut - sowohl
 /// die tatsächliche Zucht als auch die Wahrscheinlichkeitsvorschau (ZuchtVorschau) rufen genau
 /// diesen Code auf. Nur so kann die Vorschau ehrlich sein, statt eine zweite, separat gepflegte
-/// Formel zu zeigen, die von der echten Regel abweichen könnte.</summary>
+/// Formel zu zeigen, die von der echten Regel abweichen könnte.
+///
+/// gebaeudestufen kommt von außen (Spielstand kennt seine Gebäude, ZuchtRechner bleibt eine reine
+/// Funktion) und bestimmt über GebaeudeRegeln, was Zuchtstall, Fohlenaufzucht und Genetiklabor
+/// gerade zulassen (siehe Phase-4-Auftrag, Block 2).</summary>
 public static class ZuchtRechner
 {
     // Erste Entwürfe, zum Feintunen mit dem Sim-Werkzeug gedacht (siehe Projektanweisung).
@@ -12,22 +16,21 @@ public static class ZuchtRechner
     private const double TieraufstiegChance = 0.20;
     private const int MaxMerkmaleProAchse = 3;
 
-    // Vier Stunden, siehe Phase-4-Auftrag - ein Zuchtstall wird das in Block 2 weiter verkürzen.
-    private static readonly TimeSpan Traechtigkeitsdauer = TimeSpan.FromHours(4);
-    private const float MinAufdeckStunden = 1f;
-    private const float MaxAufdeckStunden = 8f;
-
     /// <summary>Würfelt das Fohlen sofort und verpackt es in eine Trächtigkeit, die erst nach der
     /// Tragezeit auf die Stallliste kommt. Gewürfelt wird bei der Zucht, nicht erst bei der Geburt.</summary>
-    public static Traechtigkeit StarteZucht(GameRandom zufall, Inhaltsdatenbank inhalte, Pferd mutter, Pferd vater, ZuchtEinsatz einsatz, DateTime jetzt)
+    public static Traechtigkeit StarteZucht(GameRandom zufall, Inhaltsdatenbank inhalte, Pferd mutter, Pferd vater,
+        ZuchtEinsatz einsatz, IReadOnlyDictionary<Gebaeude, int> gebaeudestufen, DateTime jetzt)
     {
-        var fohlen = ErzeugeFohlen(zufall, inhalte, mutter, vater, einsatz, jetzt);
-        return new Traechtigkeit { Beginn = jetzt, Geburtstermin = jetzt + Traechtigkeitsdauer, Fohlen = fohlen };
+        var fohlen = ErzeugeFohlen(zufall, inhalte, mutter, vater, einsatz, gebaeudestufen, jetzt);
+        var dauer = GebaeudeRegeln.Traechtigkeitsdauer(gebaeudestufen.GetValueOrDefault(Gebaeude.Zuchtstall, 1));
+        return new Traechtigkeit { Beginn = jetzt, Geburtstermin = jetzt + dauer, Fohlen = fohlen };
     }
 
-    public static Pferd ErzeugeFohlen(GameRandom zufall, Inhaltsdatenbank inhalte, Pferd mutter, Pferd vater, ZuchtEinsatz einsatz, DateTime geburtsdatum)
+    public static Pferd ErzeugeFohlen(GameRandom zufall, Inhaltsdatenbank inhalte, Pferd mutter, Pferd vater,
+        ZuchtEinsatz einsatz, IReadOnlyDictionary<Gebaeude, int> gebaeudestufen, DateTime geburtsdatum)
     {
         var rasse = inhalte.HoleRasse(zufall.NaechsterBool() ? mutter.RasseId : vater.RasseId);
+        int zuchtstallStufe = gebaeudestufen.GetValueOrDefault(Gebaeude.Zuchtstall, 1);
 
         var fohlen = new Pferd
         {
@@ -35,7 +38,7 @@ public static class ZuchtRechner
             Geschlecht = zufall.NaechsterBool() ? Geschlecht.Stute : Geschlecht.Hengst,
             Farbe = zufall.NaechsterBool() ? mutter.Farbe : vater.Farbe,
             Geburtsdatum = geburtsdatum,
-            Blutlinienstufe = WuerfleBlutlinienstufe(zufall, mutter, vater, einsatz),
+            Blutlinienstufe = WuerfleBlutlinienstufe(zufall, mutter, vater, einsatz, zuchtstallStufe),
             MutterId = mutter.Id,
             VaterId = vater.Id
         };
@@ -49,21 +52,27 @@ public static class ZuchtRechner
         var implizit = inhalte.HoleMerkmal(rasse.ImplizitesMerkmal);
         fohlen.ImplizitesMerkmal = MerkmalsWuerfler.Wuerfle(zufall, implizit, BlutlinienRegeln.MaxMerkmalsstufe(fohlen.Blutlinienstufe, implizit.Stufen.Count));
 
-        VerbirgMerkmale(fohlen, zufall, geburtsdatum);
+        int genetiklaborStufe = gebaeudestufen.GetValueOrDefault(Gebaeude.Genetiklabor, 1);
+        VerbirgMerkmale(fohlen, zufall, geburtsdatum, genetiklaborStufe);
 
-        fohlen.Werte = WuerfleWerte(zufall, rasse, mutter, vater, fohlen);
+        int fohlenaufzuchtStufe = gebaeudestufen.GetValueOrDefault(Gebaeude.Fohlenaufzucht, 1);
+        fohlen.Werte = WuerfleWerte(zufall, rasse, mutter, vater, fohlen, fohlenaufzuchtStufe);
         fohlen.Kondition = 100f;
         fohlen.Stimmung = zufall.NaechsterBereich(70f, 100f);
 
         return fohlen;
     }
 
-    private static int WuerfleBlutlinienstufe(GameRandom zufall, Pferd mutter, Pferd vater, ZuchtEinsatz einsatz)
+    private static int WuerfleBlutlinienstufe(GameRandom zufall, Pferd mutter, Pferd vater, ZuchtEinsatz einsatz, int zuchtstallStufe)
     {
         int basis = (int)Math.Round((mutter.Blutlinienstufe + vater.Blutlinienstufe) / 2.0, MidpointRounding.AwayFromZero);
         if (einsatz.Kraftfutter) basis += 1;
         int schwankung = zufall.NaechsteGanzzahl(-1, 2); // -1, 0 oder +1 - "ergibt sich", ist kein reiner Wurf
-        return Math.Max(1, basis + schwankung);
+
+        // Ohne ausgebauten Zuchtstall ist eine Spitzen-Blutlinie schlicht unerreichbar, egal wie
+        // gut die Eltern sind (siehe Phase-4-Auftrag, Block 2).
+        int deckel = GebaeudeRegeln.MaxBlutlinienstufe(zuchtstallStufe);
+        return Math.Clamp(basis + schwankung, 1, deckel);
     }
 
     private static List<MerkmalsInstanz> SammleMerkmale(GameRandom zufall, Inhaltsdatenbank inhalte, Pferd mutter, Pferd vater,
@@ -139,25 +148,31 @@ public static class ZuchtRechner
         return ergebnis;
     }
 
-    private static void VerbirgMerkmale(Pferd fohlen, GameRandom zufall, DateTime geburtsdatum)
+    private static void VerbirgMerkmale(Pferd fohlen, GameRandom zufall, DateTime geburtsdatum, int genetiklaborStufe)
     {
-        // "Nach und nach": jedes Merkmal deckt sich einzeln zu einem eigenen, gestreuten Zeitpunkt auf.
+        // "Nach und nach": jedes Merkmal deckt sich einzeln zu einem eigenen, gestreuten Zeitpunkt
+        // auf. Ein ausgebautes Genetiklabor verkürzt diesen Zeitraum (siehe GebaeudeRegeln).
+        var (minStunden, maxStunden) = GebaeudeRegeln.AufdeckZeitraum(genetiklaborStufe);
         foreach (var merkmal in fohlen.AlleMerkmale())
         {
             merkmal.Bekannt = false;
-            merkmal.Aufdeckzeitpunkt = geburtsdatum.AddHours(zufall.NaechsterBereich(MinAufdeckStunden, MaxAufdeckStunden));
+            merkmal.Aufdeckzeitpunkt = geburtsdatum.AddHours(zufall.NaechsterBereich(minStunden, maxStunden));
         }
     }
 
-    private static StatBlock WuerfleWerte(GameRandom zufall, Rasse rasse, Pferd mutter, Pferd vater, Pferd fohlen)
+    private static StatBlock WuerfleWerte(GameRandom zufall, Rasse rasse, Pferd mutter, Pferd vater, Pferd fohlen, int fohlenaufzuchtStufe)
     {
         var werte = new StatBlock();
+        float minStreuung = GebaeudeRegeln.MinWerteStreuung(fohlenaufzuchtStufe);
+
         foreach (var (typ, stat) in werte.Alle())
         {
             // Der Kernhebel, der Zucht lohnender macht als Zukauf: die Basis ist der Durchschnitt
-            // der Elternpotenziale statt immer wieder der reine Rassen-Basisbereich.
+            // der Elternpotenziale statt immer wieder der reine Rassen-Basisbereich. Eine gut
+            // ausgebaute Fohlenaufzucht hebt die Untergrenze dieser Streuung an - ein gut
+            // aufgezogenes Fohlen verliert nichts von der Anlage seiner Eltern.
             float elternDurchschnitt = (mutter.Werte.Hole(typ).Potenzial + vater.Werte.Hole(typ).Potenzial) / 2f;
-            float basis = elternDurchschnitt * zufall.NaechsterBereich(0.9f, 1.1f);
+            float basis = elternDurchschnitt * zufall.NaechsterBereich(minStreuung, 1.1f);
             basis = Math.Max(basis, rasse.Potenzial(typ).Min);
 
             float bonusProzent = fohlen.ModifikatorSumme(typ.AlsMerkmalsattribut());

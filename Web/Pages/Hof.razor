@@ -1,0 +1,112 @@
+@page "/hof"
+@using Core
+@using Web.Speicher
+@inject SpielSitzung Sitzung
+
+<PageTitle>Hof</PageTitle>
+
+@if (!Sitzung.Geladen)
+{
+    <p>Lädt...</p>
+}
+else
+{
+    <div class="stall-kopf">
+        <h1>Hof</h1>
+        <button class="knopf-sekundaer" @onclick="Aktualisieren">Aktualisieren</button>
+    </div>
+    <p class="karte-unterzeile">Jedes Gebäude wirkt konkret auf die Zucht - welches gerade begrenzt, steht in der Zuchtplanung.</p>
+
+    @if (_meldung != null)
+    {
+        <p class="erfolgsmeldung">@_meldung</p>
+    }
+    @if (_fehler != null)
+    {
+        <p class="fehlermeldung">@_fehler</p>
+    }
+
+    <div class="gebaeude-raster">
+        @foreach (var gebaeude in Enum.GetValues<Gebaeude>())
+        {
+            int stufe = Sitzung.Zustand.GebaeudeStufe(gebaeude);
+            bool baustelle = Sitzung.Zustand.LaufenderAusbau?.Gebaeude == gebaeude;
+            <div class="gebaeude-karte @(baustelle ? "gebaeude-baustelle" : "")">
+                <div class="karte-kopf">
+                    <span class="pferde-name">@Anzeigename(gebaeude)</span>
+                    <span class="seltenheit-abzeichen">Stufe @stufe</span>
+                </div>
+                <div class="karte-unterzeile">@Beschreibung(gebaeude, stufe)</div>
+                @if (baustelle)
+                {
+                    <p class="fohlen-hinweis">🚧 im Bau, fertig um @Sitzung.Zustand.LaufenderAusbau!.Fertig.ToLocalTime().ToString("HH:mm")</p>
+                }
+                else
+                {
+                    <div class="karte-unterzeile"><em>nach Ausbau: @Beschreibung(gebaeude, stufe + 1)</em></div>
+                    <button class="knopf-primaer" disabled="@(Sitzung.Zustand.LaufenderAusbau != null)"
+                            @onclick="() => Ausbauen(gebaeude)">
+                        Ausbauen (@Sitzung.Zustand.HofAusbauKosten(gebaeude).ToString("N0"))
+                    </button>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private string? _meldung;
+    private string? _fehler;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Sitzung.Geladen)
+            await Sitzung.LadenOderErzeugenAsync();
+    }
+
+    private async Task Aktualisieren()
+    {
+        Sitzung.Zustand.Advance(DateTime.UtcNow);
+        await Sitzung.SpeichernAsync();
+    }
+
+    private async Task Ausbauen(Gebaeude gebaeude)
+    {
+        _fehler = null;
+        _meldung = null;
+        try
+        {
+            Sitzung.Zustand.HofAusbauen(gebaeude, DateTime.UtcNow);
+            _meldung = $"Ausbau von {Anzeigename(gebaeude)} gestartet.";
+            await Sitzung.SpeichernAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _fehler = ex.Message;
+        }
+    }
+
+    // "FutterlagerUndVerwaltung" -> "Futterlager Und Verwaltung": vor jedem Großbuchstaben
+    // (außer am Anfang) ein Leerzeichen, "Und" danach klein.
+    private static string Anzeigename(Gebaeude gebaeude) =>
+        System.Text.RegularExpressions.Regex.Replace(gebaeude.ToString(), "(?<!^)([A-Z])", " $1")
+            .Replace(" Und ", " und ");
+
+    private static string Beschreibung(Gebaeude gebaeude, int stufe) => gebaeude switch
+    {
+        Gebaeude.Zuchtstall =>
+            $"Blutlinienstufe maximal {GebaeudeRegeln.MaxBlutlinienstufe(stufe)}, Trächtigkeit {GebaeudeRegeln.Traechtigkeitsdauer(stufe).TotalHours:0.#} Std.",
+        Gebaeude.Fohlenaufzucht =>
+            $"Werte des Fohlens streuen zwischen {GebaeudeRegeln.MinWerteStreuung(stufe) * 100:0}% und 110% des Eltern-Durchschnitts.",
+        Gebaeude.Genetiklabor =>
+            $"Merkmale decken sich in {GebaeudeRegeln.AufdeckZeitraum(stufe).MinStunden:0.#} bis {GebaeudeRegeln.AufdeckZeitraum(stufe).MaxStunden:0.#} Std. auf" +
+            (stufe >= GebaeudeRegeln.GenetiklaborDetailstufe ? ", Vorschau zeigt einzelne Merkmalschancen." : "."),
+        Gebaeude.Weide => $"Erholung und Stimmung aller Pferde +{GebaeudeRegeln.ErholungsBonusProzent(stufe):0}%.",
+        Gebaeude.Deckstation =>
+            $"{GebaeudeRegeln.MaxGleichzeitigeTraechtigkeiten(stufe)} gleichzeitige Trächtigkeit(en), {GebaeudeRegeln.MaterialRueckerstattungsChance(stufe) * 100:0}% Chance auf Materialrückerstattung.",
+        Gebaeude.Tierarztstation => "Wirkt sich aus, sobald es ein Verletzungssystem gibt (noch nicht umgesetzt).",
+        Gebaeude.FutterlagerUndVerwaltung =>
+            $"Unterhalt ×{GebaeudeRegeln.UnterhaltsMultiplikator(stufe):0.00}, {GebaeudeRegeln.AnzahlMarktpferde(stufe)} Pferde im Markt.",
+        _ => ""
+    };
+}

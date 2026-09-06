@@ -17,8 +17,11 @@ public partial class Spielstand
 
     public int Guthaben { get; set; }
     public int Ansehen { get; set; }
-    public int Hofstufe { get; set; } = 1;
-    public DateTime? HofAusbauFertig { get; set; }
+
+    // Jedes Gebäude hat seine eigene Stufe und wirkt konkret in die Zucht hinein (siehe
+    // GebaeudeRegeln) statt nur ein pauschaler Geldfresser mit kleinen Boni zu sein.
+    public Dictionary<Gebaeude, int> Gebaeudestufen { get; set; } = new();
+    public AusbauAuftrag? LaufenderAusbau { get; set; }
 
     // Getrennte Termine, weil nur die Materialproduktion ohne Inhaltsdatenbank auskommt und darum
     // in Advance(DateTime) laufen darf - der Marktnachschub braucht Rassen-Daten und wird darum
@@ -30,6 +33,8 @@ public partial class Spielstand
     public List<Pferd> MarktPferde { get; set; } = new();
     public List<Ausruestung> Ausruestungen { get; set; } = new();
     public List<WettkampfErgebnis> WettkampfErgebnisse { get; set; } = new();
+
+    public int GebaeudeStufe(Gebaeude gebaeude) => Gebaeudestufen.GetValueOrDefault(gebaeude, 1);
 
     /// <summary>Rechnet die Zeit seit dem letzten Besuch in Schritten von höchstens einer Stunde
     /// nach, damit sich fällige Ereignisse nicht überholen (siehe Zeitmodell in der
@@ -52,9 +57,9 @@ public partial class Spielstand
             var naechsterZeitpunkt = zeitpunkt + schrittGroesse;
             if (naechsterZeitpunkt > jetzt) naechsterZeitpunkt = jetzt;
 
-            // Hofstufe wirkt wie eine bessere Unterbringung auf alle Pferde gleich; dazu kommt die
-            // Decken-Ausrüstung des einzelnen Pferdes (Erholung und Stimmung zusammengefasst).
-            float hofBonus = (Hofstufe - 1) * 15f;
+            // Die Weide wirkt wie eine bessere Unterbringung auf alle Pferde gleich; dazu kommt
+            // die Decken-Ausrüstung des einzelnen Pferdes (Erholung und Stimmung zusammengefasst).
+            float weideBonus = GebaeudeRegeln.ErholungsBonusProzent(GebaeudeStufe(Gebaeude.Weide));
 
             // Neugeborene und ausgewertete Wettkämpfe erst nach der Schleife anhängen bzw.
             // verarbeiten - während der Iteration die Pferdeliste selbst zu verändern würde eine
@@ -64,7 +69,7 @@ public partial class Spielstand
             {
                 float ausruestungsBonus = AusruestungsHelfer.ModifikatorSumme(pferd, Ausruestungen, Merkmalsattribut.Erholung)
                                          + AusruestungsHelfer.ModifikatorSumme(pferd, Ausruestungen, Merkmalsattribut.Stimmung);
-                pferd.Advance(zeitpunkt, naechsterZeitpunkt, hofBonus + ausruestungsBonus);
+                pferd.Advance(zeitpunkt, naechsterZeitpunkt, weideBonus + ausruestungsBonus);
 
                 if (pferd.Traechtigkeit != null && pferd.Traechtigkeit.Geburtstermin <= naechsterZeitpunkt)
                 {
@@ -80,10 +85,10 @@ public partial class Spielstand
             }
             Pferde.AddRange(neugeborene);
 
-            if (HofAusbauFertig != null && HofAusbauFertig <= naechsterZeitpunkt)
+            if (LaufenderAusbau != null && LaufenderAusbau.Fertig <= naechsterZeitpunkt)
             {
-                Hofstufe += 1;
-                HofAusbauFertig = null;
+                Gebaeudestufen[LaufenderAusbau.Gebaeude] = GebaeudeStufe(LaufenderAusbau.Gebaeude) + 1;
+                LaufenderAusbau = null;
             }
 
             BucheUnterhaltskosten(zeitpunkt, naechsterZeitpunkt);
@@ -98,6 +103,7 @@ public partial class Spielstand
     {
         const float basiskostenProTag = 5f;
         float stunden = (float)(bis - von).TotalHours;
+        float unterhaltsMultiplikator = GebaeudeRegeln.UnterhaltsMultiplikator(GebaeudeStufe(Gebaeude.FutterlagerUndVerwaltung));
 
         float summe = 0f;
         foreach (var pferd in Pferde)
@@ -105,6 +111,6 @@ public partial class Spielstand
 
         // Guthaben darf ins Minus laufen - das Spiel bestraft Abwesenheit nicht, kein Pferd
         // verhungert oder wird zwangsverkauft (Designgrundsatz 1).
-        Guthaben -= (int)MathF.Round(summe);
+        Guthaben -= (int)MathF.Round(summe * unterhaltsMultiplikator);
     }
 }

@@ -51,8 +51,11 @@ public static class Wirtschaftsbericht
 
     private static void CheckIn(Spielstand stand, List<Wettkampfklasse> klassen, DateTime jetzt)
     {
-        if (stand.HofAusbauFertig == null && stand.Guthaben > stand.HofAusbauKosten() * 3)
-            stand.HofAusbauen(jetzt);
+        // Immer das gerade günstigste Gebäude ausbauen, damit sich die Investition über alle
+        // sieben Gebäude verteilt statt einseitig eines hochzuziehen.
+        var guenstigstesGebaeude = Enum.GetValues<Gebaeude>().OrderBy(stand.GebaeudeStufe).First();
+        if (stand.LaufenderAusbau == null && stand.Guthaben > stand.HofAusbauKosten(guenstigstesGebaeude) * 3)
+            stand.HofAusbauen(guenstigstesGebaeude, jetzt);
 
         if (stand.Pferde.Count < MaxBestand && stand.MarktPferde.Count > 0 && stand.Zufall.NaechsterBool(0.1))
         {

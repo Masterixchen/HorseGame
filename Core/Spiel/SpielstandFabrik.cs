@@ -18,7 +18,7 @@ public static class SpielstandFabrik
             Spielbeginn = jetzt,
             Zufall = zufall,
             Guthaben = StartGuthaben,
-            Hofstufe = 1,
+            Gebaeudestufen = Enum.GetValues<Gebaeude>().ToDictionary(g => g, _ => 1),
             NaechsteMaterialproduktion = jetzt,
             NaechsteMarktAktualisierung = jetzt.AddDays(7)
         };

@@ -2,8 +2,6 @@ namespace Core;
 
 public partial class Spielstand
 {
-    private const int AnzahlMarktpferde = 5;
-
     /// <summary>Erneuert das Marktangebot, falls der wöchentliche Termin erreicht ist. Braucht die
     /// Inhaltsdatenbank (Rassen für neue Pferde) und läuft deshalb bewusst nicht in
     /// Advance(DateTime), sondern wird von der Oberfläche beim Öffnen des Marktes angestoßen.</summary>
@@ -12,8 +10,9 @@ public partial class Spielstand
         if (jetzt < NaechsteMarktAktualisierung) return;
 
         var rassen = inhalte.AlleRassen().ToList();
+        int anzahl = GebaeudeRegeln.AnzahlMarktpferde(GebaeudeStufe(Gebaeude.FutterlagerUndVerwaltung));
         MarktPferde.Clear();
-        for (int i = 0; i < AnzahlMarktpferde; i++)
+        for (int i = 0; i < anzahl; i++)
             MarktPferde.Add(PferdeGenerator.Erzeuge(Zufall, inhalte, Zufall.Waehle(rassen), jetzt));
 
         NaechsteMarktAktualisierung = jetzt.AddDays(7);

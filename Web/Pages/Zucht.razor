@@ -25,6 +25,21 @@ else
     </section>
 
     <section class="detail-abschnitt">
+        <h2>Hof-Einfluss auf die Zucht</h2>
+        <p class="karte-unterzeile">
+            <strong>Zuchtstall</strong> Stufe @ZuchtstallStufe: Blutlinienstufe maximal <strong>@GebaeudeRegeln.MaxBlutlinienstufe(ZuchtstallStufe)</strong>
+            (Ausbau hebt auf @GebaeudeRegeln.MaxBlutlinienstufe(ZuchtstallStufe + 1)), Trächtigkeit @GebaeudeRegeln.Traechtigkeitsdauer(ZuchtstallStufe).TotalHours.ToString("0.#") Std.
+        </p>
+        <p class="karte-unterzeile">
+            <strong>Fohlenaufzucht</strong> Stufe @FohlenaufzuchtStufe: Werte streuen zwischen @((GebaeudeRegeln.MinWerteStreuung(FohlenaufzuchtStufe) * 100).ToString("0"))% und 110% des Eltern-Durchschnitts.
+        </p>
+        <p class="karte-unterzeile">
+            <strong>Genetiklabor</strong> Stufe @GenetiklaborStufe: Merkmale decken sich in @GebaeudeRegeln.AufdeckZeitraum(GenetiklaborStufe).MinStunden.ToString("0.#") bis @GebaeudeRegeln.AufdeckZeitraum(GenetiklaborStufe).MaxStunden.ToString("0.#") Std. auf.
+        </p>
+        <a href="/hof">→ Gebäude ausbauen</a>
+    </section>
+
+    <section class="detail-abschnitt">
         <h2>Elterntiere</h2>
         @if (Stuten.Count == 0 || Hengste.Count == 0)
         {
@@ -140,6 +155,25 @@ else
                     </div>
                 }
             }
+
+            @if (GenetiklaborStufe >= GebaeudeRegeln.GenetiklaborDetailstufe)
+            {
+                <h3>Einzelne Merkmalschancen (Genetiklabor Stufe @GenetiklaborStufe)</h3>
+                @foreach (var eintrag in _vorschau.MerkmalsChancen.OrderByDescending(kv => kv.Value))
+                {
+                    <div class="vorschau-zeile">
+                        <span class="vorschau-label">@Inhalte.HoleMerkmal(eintrag.Key).Name</span>
+                        <div class="balken-hintergrund">
+                            <div class="balken-aktuell" style="width:@Prozent(eintrag.Value)%"></div>
+                        </div>
+                        <span class="vorschau-prozent">@((eintrag.Value * 100).ToString("F1"))%</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="karte-unterzeile">Ein Genetiklabor ab Stufe @GebaeudeRegeln.GenetiklaborDetailstufe zeigt hier einzelne Merkmalschancen statt nur Familien.</p>
+            }
         </section>
     }
 }
@@ -183,12 +217,16 @@ else
             await Sitzung.LadenOderErzeugenAsync();
     }
 
+    private int ZuchtstallStufe => Sitzung.Zustand.GebaeudeStufe(Gebaeude.Zuchtstall);
+    private int FohlenaufzuchtStufe => Sitzung.Zustand.GebaeudeStufe(Gebaeude.Fohlenaufzucht);
+    private int GenetiklaborStufe => Sitzung.Zustand.GebaeudeStufe(Gebaeude.Genetiklabor);
+
     private void VorschauBerechnen()
     {
         _fehlermeldung = null;
         _erfolgsmeldung = null;
         if (Mutter == null || Vater == null) return;
-        _vorschau = ZuchtVorschau.Berechne(Inhalte, Mutter, Vater, HoleEinsatz());
+        _vorschau = ZuchtVorschau.Berechne(Inhalte, Mutter, Vater, HoleEinsatz(), Sitzung.Zustand.Gebaeudestufen);
     }
 
     private async Task ZuchtBestaetigen()

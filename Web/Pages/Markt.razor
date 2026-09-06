@@ -27,19 +27,6 @@ else
     }
 
     <section class="detail-abschnitt">
-        <h2>Hof</h2>
-        <p>Hofstufe <strong>@Sitzung.Zustand.Hofstufe</strong> - erzeugt alle 30 Minuten @Sitzung.Zustand.Hofstufe Material(ien) und beschleunigt die Erholung aller Pferde.</p>
-        @if (Sitzung.Zustand.HofAusbauFertig is DateTime fertig)
-        {
-            <p class="fohlen-hinweis">🚧 Ausbau läuft, fertig um @fertig.ToLocalTime().ToString("HH:mm")</p>
-        }
-        else
-        {
-            <button class="knopf-primaer" @onclick="Ausbauen">Ausbauen (@Sitzung.Zustand.HofAusbauKosten().ToString("N0"))</button>
-        }
-    </section>
-
-    <section class="detail-abschnitt">
         <h2>Pferdemarkt</h2>
         @if (Sitzung.Zustand.MarktPferde.Count == 0)
         {
@@ -141,12 +128,6 @@ else
     {
         Sitzung.Zustand.Advance(DateTime.UtcNow);
         Sitzung.Zustand.AktualisiereMarktFallsFaellig(Inhalte, DateTime.UtcNow);
-        await Sitzung.SpeichernAsync();
-    }
-
-    private async Task Ausbauen()
-    {
-        Melden(() => Sitzung.Zustand.HofAusbauen(DateTime.UtcNow), "Ausbau gestartet.");
         await Sitzung.SpeichernAsync();
     }
 

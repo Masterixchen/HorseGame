@@ -12,6 +12,7 @@ public static class Zuchtbericht
     {
         var rasse = inhalte.HoleRasse("vollblut");
         var einsatz = new ZuchtEinsatz();
+        var gebaeudestufen = Enum.GetValues<Gebaeude>().ToDictionary(g => g, _ => 1);
 
         var mutter = PferdeGenerator.Erzeuge(zufall, inhalte, rasse, DateTime.UtcNow, Geschlecht.Stute);
         var vater = PferdeGenerator.Erzeuge(zufall, inhalte, rasse, DateTime.UtcNow, Geschlecht.Hengst);
@@ -23,7 +24,7 @@ public static class Zuchtbericht
         for (int generation = 1; generation <= generationen; generation++)
         {
             var kandidaten = Enumerable.Range(0, 10)
-                .Select(_ => ZuchtRechner.ErzeugeFohlen(zufall, inhalte, mutter, vater, einsatz, DateTime.UtcNow))
+                .Select(_ => ZuchtRechner.ErzeugeFohlen(zufall, inhalte, mutter, vater, einsatz, gebaeudestufen, DateTime.UtcNow))
                 .OrderByDescending(f => f.Werte.Tempo.Potenzial)
                 .ToList();
 
