@@ -1,0 +1,13 @@
+{
+  // Konfiguration fuer den Cloudflare-Worker "horsegame" (statische Blazor-WASM-Seite,
+  // kein eigener Worker-Code). "single-page-application" laesst Cloudflare bei jeder
+  // unbekannten Route index.html direkt ausliefern, ohne eine eigene _redirects-Regel
+  // mit .html-Ziel - genau die Regel hat vorher die automatische html_handling-
+  // Normalisierung in eine echte Redirect-Schleife laufen lassen (siehe build.sh-Historie).
+  "name": "horsegame",
+  "compatibility_date": "2024-09-23",
+  "assets": {
+    "directory": "./output",
+    "not_found_handling": "single-page-application"
+  }
+}
