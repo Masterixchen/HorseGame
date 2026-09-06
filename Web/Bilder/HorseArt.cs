@@ -37,8 +37,8 @@ public static class HorseArt
         if (pferd.Seltenheit == Seltenheit.Einzigartig && !string.IsNullOrEmpty(pferd.EinzigartigerSchluessel))
             liste.Add($"img/horses/uniques/{pferd.EinzigartigerSchluessel}.png");
 
-        liste.Add($"img/horses/coats/{rasse.Id}_{DateiSicher(pferd.Farbe)}.png");
-        liste.Add($"img/horses/base/{rasse.Id}.png");
+        liste.Add($"img/horses/coats/{rasse.Id}_{DateiSicher(pferd.Farbe)}.jpg");
+        liste.Add($"img/horses/base/{rasse.Id}.jpg");
         liste.Add(SilhouetteAlsDatenUrl(pferd.Farbe));
 
         return liste;

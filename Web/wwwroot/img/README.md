@@ -7,16 +7,17 @@ automatisch auf eine nach Fellfarbe eingefärbte Silhouette zurück (siehe
 
 ## Format
 
-- **PNG mit Transparenz** (Alphakanal), keine feste Hintergrundfarbe.
-- Empfohlene Kantenlänge: **512 × 512** Pixel.
+- **JPEG**, keine Transparenz nötig (die gelieferten Zeichnungen haben weißen
+  Hintergrund; ursprünglich war PNG mit Alphakanal vorgesehen, aber die ersten echten
+  Bilder kamen als JPEG - `HorseArt.cs` liest darum `.jpg` für `base/` und `coats/`).
 - Bildausschnitt: **Porträt, Kopf und Hals**, Blickrichtung nach **links**.
 
 ## Ordnerstruktur
 
 ```
 horses/
-  base/          {rassenschlüssel}.png    Grundbild je Rasse
-  coats/         {rasse}_{fellfarbe}.png  optional, geht vor base
+  base/          {rassenschlüssel}.jpg    Grundbild je Rasse
+  coats/         {rasse}_{fellfarbe}.jpg  optional, geht vor base
   uniques/       {schlüssel}.png          einzigartige Pferde
   _placeholder.svg                        mitgeliefert, letzter Rückfall
 scene/
@@ -32,8 +33,8 @@ ui/
 Für jedes Pferd probiert `HorseArt.Kandidaten(...)` der Reihe nach:
 
 1. Einzigartiges Pferd → `horses/uniques/{schlüssel}.png`
-2. Fellfarbe → `horses/coats/{rasse}_{fellfarbe}.png`
-3. Rassen-Grundbild → `horses/base/{rasse}.png`
+2. Fellfarbe → `horses/coats/{rasse}_{fellfarbe}.jpg`
+3. Rassen-Grundbild → `horses/base/{rasse}.jpg`
 4. Eine per Fellfarbe eingefärbte Silhouette (kein Dateizugriff, kann nicht fehlschlagen)
 
 Die Komponente `PferdBild.razor` reicht diese Liste als `<img>` mit einem `onerror`
@@ -42,43 +43,48 @@ ohne .NET-Umweg. Der letzte Kandidat ist ein `data:image/svg+xml`-Bild und kann 
 nie fehlschlagen: es bleibt garantiert nie eine Lücke im Layout, egal wie viele echte
 Grafiken noch fehlen.
 
-## Erwartete Dateien
+## Vorhandene Dateien
 
-Automatisch aus den Rassendaten erzeugt (`Sim/Bilddateien.cs` - bei Änderungen an
-`Core/Data/rassen.json` neu ausführen und diese Liste ersetzen):
+Liste unten entspricht dem, was aus den Rassendaten gebraucht wird (`Sim/Bilddateien.cs`
+- bei Änderungen an `Core/Data/rassen.json` neu ausführen und diese Liste abgleichen).
+Alle 24 Dateien sind seit den ersten echten Zeichnungen vorhanden. Da die Zeichnungen
+Kopfporträts ohne rassetypische Merkmale sind, teilen sich mehrere Rassen dieselbe
+Fellfarben-Zeichnung (z. B. dieselbe Rappe-Datei für alle fünf Rassen); Fuchs und
+Schimmel gibt es je in einer helleren Variante (Araber) und einer kräftigeren (übrige
+Rassen).
 
 ### Grundbilder (`horses/base/`)
 
 ```
-araber.png
-kaltblut.png
-pony.png
-vollblut.png
-warmblut.png
+araber.jpg
+kaltblut.jpg
+pony.jpg
+vollblut.jpg
+warmblut.jpg
 ```
 
 ### Fellfarben-Varianten, optional (`horses/coats/`)
 
 ```
-araber_fuchs.png
-araber_schimmel.png
-araber_rappe.png
-kaltblut_braun.png
-kaltblut_rappe.png
-kaltblut_fuchs.png
-pony_braun.png
-pony_falbe.png
-pony_schecke.png
-pony_rappe.png
-vollblut_fuchs.png
-vollblut_braun.png
-vollblut_rappe.png
-vollblut_schimmel.png
-warmblut_braun.png
-warmblut_fuchs.png
-warmblut_rappe.png
-warmblut_schimmel.png
-warmblut_falbe.png
+araber_fuchs.jpg
+araber_schimmel.jpg
+araber_rappe.jpg
+kaltblut_braun.jpg
+kaltblut_rappe.jpg
+kaltblut_fuchs.jpg
+pony_braun.jpg
+pony_falbe.jpg
+pony_schecke.jpg
+pony_rappe.jpg
+vollblut_fuchs.jpg
+vollblut_braun.jpg
+vollblut_rappe.jpg
+vollblut_schimmel.jpg
+warmblut_braun.jpg
+warmblut_fuchs.jpg
+warmblut_rappe.jpg
+warmblut_schimmel.jpg
+warmblut_falbe.jpg
 ```
 
 ### Einzigartige Pferde (`horses/uniques/`)
